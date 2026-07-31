@@ -1,0 +1,105 @@
+<div class="glass-card mb-4">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+    <div class="section-title mb-0"><i class="fa-solid fa-file-invoice"></i> Monthly Report</div>
+    <form method="GET" action="/reports" class="d-flex gap-2">
+      <input type="month" name="month" value="<%= monthYear %>" class="form-control" />
+      <button type="submit" class="btn btn-outline-brand"><i class="fa-solid fa-arrows-rotate me-1"></i> View</button>
+    </form>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="stat-label">Total Income</div>
+      <div class="stat-value" style="font-size:1.3rem;">৳<%= totalIncome.toFixed(2) %></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="stat-label">Total Expense</div>
+      <div class="stat-value" style="font-size:1.3rem;">৳<%= totalExpense.toFixed(2) %></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="stat-label">Total Savings</div>
+      <div class="stat-value" style="font-size:1.3rem;">৳<%= totalSavings.toFixed(2) %></div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="stat-label">Health Score</div>
+      <div class="stat-value" style="font-size:1.3rem;"><%= healthScore %>/100</div>
+    </div>
+  </div>
+
+  <div class="d-flex flex-wrap gap-2 mb-4">
+    <form action="/reports/generate" method="POST" class="d-inline">
+      <input type="hidden" name="monthYear" value="<%= monthYear %>" />
+      <button type="submit" class="btn btn-brand"><i class="fa-solid fa-bolt me-1"></i> Generate &amp; Save Report</button>
+    </form>
+    <a href="/reports/download/pdf?month=<%= monthYear %>" class="btn btn-outline-brand"><i class="fa-solid fa-file-pdf me-1"></i> Download PDF</a>
+    <a href="/reports/download/csv?month=<%= monthYear %>" class="btn btn-outline-brand"><i class="fa-solid fa-file-csv me-1"></i> Export CSV</a>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="section-title" style="font-size:0.95rem;"><i class="fa-solid fa-chart-simple"></i> Expense Breakdown</div>
+      <% if (categoryTotals.length === 0) { %>
+        <p style="color:var(--muted);">No expenses recorded for this month.</p>
+      <% } else { %>
+        <table class="table table-modern mb-0">
+          <thead><tr><th>Category</th><th class="text-end">Amount</th><th class="text-end">Share</th></tr></thead>
+          <tbody>
+            <% categoryTotals.forEach(c => { %>
+              <tr>
+                <td><span class="badge-category badge-<%= c.category.toLowerCase() %>"><%= c.category %></span></td>
+                <td class="text-end amount">৳<%= parseFloat(c.total).toFixed(2) %></td>
+                <td class="text-end"><%= totalExpense > 0 ? ((parseFloat(c.total)/totalExpense)*100).toFixed(1) : '0.0' %>%</td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </div>
+    <div class="col-lg-6">
+      <div class="section-title" style="font-size:0.95rem;"><i class="fa-solid fa-robot"></i> AI Insights for this Report</div>
+      <% if (recommendations.length === 0) { %>
+        <p style="color:var(--muted);">No specific insights — finances look balanced this month.</p>
+      <% } else { %>
+        <% recommendations.slice(0,5).forEach(rec => { %>
+          <div class="rec-item severity-<%= rec.severity %>">
+            <div class="rec-icon">
+              <% if (rec.severity === 'danger') { %><i class="fa-solid fa-circle-exclamation"></i>
+              <% } else if (rec.severity === 'warning') { %><i class="fa-solid fa-triangle-exclamation"></i>
+              <% } else if (rec.severity === 'success') { %><i class="fa-solid fa-circle-check"></i>
+              <% } else { %><i class="fa-solid fa-circle-info"></i><% } %>
+            </div>
+            <div><%= rec.message %></div>
+          </div>
+        <% }) %>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<div class="glass-card">
+  <div class="section-title"><i class="fa-solid fa-clock-rotate-left"></i> Report History</div>
+  <% if (history.length === 0) { %>
+    <div class="empty-state">
+      <i class="fa-solid fa-file-invoice"></i>
+      <p>No saved reports yet. Generate one above to keep a record.</p>
+    </div>
+  <% } else { %>
+    <div class="table-responsive">
+      <table class="table table-modern mb-0">
+        <thead><tr><th>Month</th><th class="text-end">Income</th><th class="text-end">Expense</th><th class="text-end">Savings</th><th class="text-end">Health Score</th><th>Generated</th></tr></thead>
+        <tbody>
+          <% history.forEach(h => { %>
+            <tr>
+              <td><a href="/reports?month=<%= h.month_year %>" style="color:var(--primary); font-weight:600;"><%= h.month_year %></a></td>
+              <td class="text-end amount">৳<%= parseFloat(h.total_income).toFixed(2) %></td>
+              <td class="text-end amount">৳<%= parseFloat(h.total_expense).toFixed(2) %></td>
+              <td class="text-end amount">৳<%= parseFloat(h.total_savings).toFixed(2) %></td>
+              <td class="text-end"><%= h.health_score %>/100</td>
+              <td style="color:var(--muted); font-size:0.85rem;"><%= new Date(h.generated_at).toLocaleDateString() %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>

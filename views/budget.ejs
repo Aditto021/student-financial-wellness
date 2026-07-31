@@ -1,0 +1,96 @@
+<div class="row g-3 mb-4">
+  <div class="col-lg-5">
+    <div class="glass-card h-100">
+      <div class="section-title"><i class="fa-solid fa-piggy-bank"></i> Set Monthly Budget</div>
+      <form action="/budget" method="POST">
+        <div class="mb-3">
+          <label class="form-label">Month</label>
+          <input type="month" name="monthYear" class="form-control" value="<%= monthYear %>" required />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Monthly Budget Amount (৳)</label>
+          <input type="number" step="0.01" min="0.01" name="monthlyBudget" class="form-control" placeholder="e.g. 15000" required />
+        </div>
+        <button type="submit" class="btn btn-brand w-100"><i class="fa-solid fa-floppy-disk me-1"></i> Save Budget</button>
+      </form>
+
+      <hr class="my-4" style="border-color:var(--glass-border);">
+
+      <div class="section-title" style="font-size:0.95rem;"><i class="fa-solid fa-clock-rotate-left"></i> Budget History</div>
+      <% if (history.length === 0) { %>
+        <p style="color:var(--muted);">No budget history yet.</p>
+      <% } else { %>
+        <div class="table-responsive">
+          <table class="table table-modern mb-0">
+            <thead><tr><th>Month</th><th class="text-end">Budget</th></tr></thead>
+            <tbody>
+              <% history.forEach(h => { %>
+                <tr>
+                  <td><a href="/budget?month=<%= h.month_year %>" style="color:var(--primary); font-weight:600;"><%= h.month_year %></a></td>
+                  <td class="text-end amount">৳<%= parseFloat(h.monthly_budget).toFixed(2) %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="glass-card h-100">
+      <div class="section-title"><i class="fa-solid fa-chart-pie"></i> Budget Summary — <%= monthYear %></div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+          <div class="stat-label">Income</div>
+          <div class="stat-value" style="font-size:1.15rem;">৳<%= totalIncome.toFixed(2) %></div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-label">Spent</div>
+          <div class="stat-value" style="font-size:1.15rem;">৳<%= spentAmount.toFixed(2) %></div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-label">Remaining</div>
+          <div class="stat-value" style="font-size:1.15rem; color: <%= remainingBudget < 0 ? 'var(--danger)' : 'var(--primary)' %>;">
+            ৳<%= remainingBudget.toFixed(2) %>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-label">Savings</div>
+          <div class="stat-value" style="font-size:1.15rem;">৳<%= savings.toFixed(2) %></div>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-between mb-2" style="font-size:0.9rem; color:var(--muted);">
+        <span>Budget Usage</span>
+        <span><%= budgetPercentage %>%</span>
+      </div>
+      <div class="progress-modern mb-4">
+        <div class="progress-bar-fill <%= budgetPercentage > 90 ? 'over-limit' : '' %>" style="width: <%= Math.min(100, budgetPercentage) %>%;"></div>
+      </div>
+
+      <% if (monthlyBudget === 0) { %>
+        <div class="empty-state">
+          <i class="fa-solid fa-wallet"></i>
+          <p>No budget set for this month yet. Use the form to set one.</p>
+        </div>
+      <% } else if (remainingBudget < 0) { %>
+        <div class="rec-item severity-danger">
+          <div class="rec-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
+          <div>You have exceeded your budget by ৳<%= Math.abs(remainingBudget).toFixed(2) %>. Consider reducing discretionary spending for the rest of the month.</div>
+        </div>
+      <% } else if (budgetPercentage > 85) { %>
+        <div class="rec-item severity-warning">
+          <div class="rec-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div>You're close to your budget limit. Only ৳<%= remainingBudget.toFixed(2) %> remains this month.</div>
+        </div>
+      <% } else { %>
+        <div class="rec-item severity-success">
+          <div class="rec-icon"><i class="fa-solid fa-circle-check"></i></div>
+          <div>You're within budget with ৳<%= remainingBudget.toFixed(2) %> remaining. Great financial discipline!</div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>

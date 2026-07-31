@@ -1,0 +1,70 @@
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="glass-card text-center">
+      <% if (profileUser.profile_picture) { %>
+        <img src="/uploads/profile/<%= profileUser.profile_picture %>" class="rounded-circle mb-3" style="width:120px; height:120px; object-fit:cover; border:3px solid var(--mint);" />
+      <% } else { %>
+        <div class="rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:120px; height:120px; background:var(--mint-soft); color:var(--primary); font-size:2.4rem; font-weight:700;">
+          <%= profileUser.full_name.charAt(0).toUpperCase() %>
+        </div>
+      <% } %>
+      <h5 class="mb-1"><%= profileUser.full_name %></h5>
+      <p style="color:var(--muted);" class="mb-3"><%= profileUser.email %></p>
+
+      <form action="/profile/upload-picture" method="POST" enctype="multipart/form-data">
+        <input type="file" name="profilePicture" class="form-control mb-2" accept="image/*" required />
+        <button type="submit" class="btn btn-outline-brand w-100"><i class="fa-solid fa-upload me-1"></i> Upload Photo</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="glass-card mb-3">
+      <div class="section-title"><i class="fa-solid fa-user-pen"></i> Edit Profile</div>
+      <form action="/profile/update" method="POST">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Full Name</label>
+            <input type="text" name="fullName" class="form-control" value="<%= profileUser.full_name %>" required />
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" value="<%= profileUser.email %>" disabled />
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">University</label>
+            <input type="text" name="university" class="form-control" value="<%= profileUser.university || '' %>" />
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Student ID</label>
+            <input type="text" name="studentId" class="form-control" value="<%= profileUser.student_id || '' %>" />
+          </div>
+        </div>
+        <button type="submit" class="btn btn-brand"><i class="fa-solid fa-floppy-disk me-1"></i> Save Changes</button>
+      </form>
+    </div>
+
+    <div class="glass-card">
+      <div class="section-title"><i class="fa-solid fa-lock"></i> Change Password</div>
+      <form action="/profile/change-password" method="POST">
+        <div class="mb-3">
+          <label class="form-label">Current Password</label>
+          <input type="password" name="currentPassword" class="form-control" required />
+        </div>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">New Password</label>
+            <input type="password" name="newPassword" class="form-control" minlength="6" required />
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Confirm New Password</label>
+            <input type="password" name="confirmNewPassword" class="form-control" minlength="6" required />
+          </div>
+        </div>
+        <button type="submit" class="btn btn-brand"><i class="fa-solid fa-key me-1"></i> Update Password</button>
+      </form>
+    </div>
+  </div>
+</div>

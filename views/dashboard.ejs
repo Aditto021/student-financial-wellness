@@ -1,0 +1,209 @@
+<!-- Stat cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="glass-card stat-card h-100">
+      <div class="stat-icon icon-income"><i class="fa-solid fa-arrow-trend-up"></i></div>
+      <div class="stat-label">Total Income</div>
+      <div class="stat-value">৳<%= totalIncome.toFixed(2) %></div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="glass-card stat-card h-100">
+      <div class="stat-icon icon-expense"><i class="fa-solid fa-arrow-trend-down"></i></div>
+      <div class="stat-label">Total Expense</div>
+      <div class="stat-value">৳<%= totalExpense.toFixed(2) %></div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="glass-card stat-card h-100">
+      <div class="stat-icon icon-savings"><i class="fa-solid fa-piggy-bank"></i></div>
+      <div class="stat-label">Total Savings</div>
+      <div class="stat-value">৳<%= totalSavings.toFixed(2) %></div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="glass-card stat-card h-100">
+      <div class="stat-icon icon-budget"><i class="fa-solid fa-wallet"></i></div>
+      <div class="stat-label">Monthly Budget</div>
+      <div class="stat-value">৳<%= monthlyBudget.toFixed(2) %></div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <!-- Financial Health Score -->
+  <div class="col-lg-4">
+    <div class="glass-card h-100 text-center">
+      <div class="section-title justify-content-center"><i class="fa-solid fa-heart-pulse"></i> Financial Health Score</div>
+      <div class="health-gauge">
+        <svg viewBox="0 0 150 150" width="150" height="150">
+          <defs>
+            <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#0f7a4d"/>
+              <stop offset="100%" stop-color="#38d996"/>
+            </linearGradient>
+          </defs>
+          <circle class="gauge-bg" cx="75" cy="75" r="65"></circle>
+          <circle class="gauge-fill" cx="75" cy="75" r="65"
+            data-score="<%= healthScore %>" data-circumference="408.4"></circle>
+        </svg>
+        <div class="gauge-text">
+          <div class="gauge-score"><%= healthScore %></div>
+          <div class="gauge-label">out of 100</div>
+        </div>
+      </div>
+      <p class="mt-3 mb-0" style="color:var(--muted); font-size:0.88rem;">
+        <% if (healthScore >= 80) { %>
+          Excellent! Your finances are in great shape.
+        <% } else if (healthScore >= 60) { %>
+          Good — a few tweaks will strengthen your finances.
+        <% } else if (healthScore >= 40) { %>
+          Fair — review the AI recommendations below.
+        <% } else { %>
+          Needs attention — follow the AI recommendations closely.
+        <% } %>
+      </p>
+    </div>
+  </div>
+
+  <!-- Budget progress -->
+  <div class="col-lg-8">
+    <div class="glass-card h-100">
+      <div class="section-title"><i class="fa-solid fa-piggy-bank"></i> Monthly Budget Overview (<%= monthYear %>)</div>
+      <div class="d-flex justify-content-between mb-2" style="font-size:0.9rem; color:var(--muted);">
+        <span>Spent: ৳<%= totalExpense.toFixed(2) %></span>
+        <span><%= budgetSpentPct %>% used</span>
+        <span>Remaining: ৳<%= remainingBudget.toFixed(2) %></span>
+      </div>
+      <div class="progress-modern mb-4">
+        <div class="progress-bar-fill <%= budgetSpentPct > 90 ? 'over-limit' : '' %>" style="width: <%= Math.min(100, budgetSpentPct) %>%;"></div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <canvas id="categoryPieChart" height="200"></canvas>
+        </div>
+        <div class="col-md-6">
+          <canvas id="trendBarChart" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- AI Recommendations -->
+  <div class="col-lg-6">
+    <div class="glass-card h-100">
+      <div class="section-title"><i class="fa-solid fa-robot"></i> AI-Powered Recommendations</div>
+      <% if (recommendations.length === 0) { %>
+        <div class="empty-state">
+          <i class="fa-solid fa-face-smile"></i>
+          <p>No alerts right now — your finances look balanced!</p>
+        </div>
+      <% } else { %>
+        <% recommendations.forEach(rec => { %>
+          <div class="rec-item severity-<%= rec.severity %>">
+            <div class="rec-icon">
+              <% if (rec.severity === 'danger') { %><i class="fa-solid fa-circle-exclamation"></i>
+              <% } else if (rec.severity === 'warning') { %><i class="fa-solid fa-triangle-exclamation"></i>
+              <% } else if (rec.severity === 'success') { %><i class="fa-solid fa-circle-check"></i>
+              <% } else { %><i class="fa-solid fa-circle-info"></i><% } %>
+            </div>
+            <div>
+              <div class="rec-category"><%= rec.category %></div>
+              <div><%= rec.message %></div>
+            </div>
+          </div>
+        <% }) %>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Recent Transactions -->
+  <div class="col-lg-6">
+    <div class="glass-card h-100">
+      <div class="section-title"><i class="fa-solid fa-clock-rotate-left"></i> Recent Transactions</div>
+      <% if (recentTransactions.length === 0) { %>
+        <div class="empty-state">
+          <i class="fa-solid fa-receipt"></i>
+          <p>No transactions yet. Add your first income or expense!</p>
+        </div>
+      <% } else { %>
+        <div class="table-responsive">
+          <table class="table table-modern mb-0">
+            <thead><tr><th>Type</th><th>Label</th><th>Date</th><th class="text-end">Amount</th></tr></thead>
+            <tbody>
+              <% recentTransactions.forEach(t => { %>
+                <tr>
+                  <td>
+                    <% if (t.type === 'income') { %>
+                      <span class="badge-category"><i class="fa-solid fa-arrow-down"></i> Income</span>
+                    <% } else { %>
+                      <span class="badge-category badge-<%= t.label.toLowerCase() %>"><i class="fa-solid fa-arrow-up"></i> Expense</span>
+                    <% } %>
+                  </td>
+                  <td><%= t.label %></td>
+                  <td><%= t.date %></td>
+                  <td class="text-end amount fw-semibold <%= t.type === 'income' ? '' : 'text-danger' %>">
+                    <%= t.type === 'income' ? '+' : '-' %>৳<%= t.amount.toFixed(2) %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<%
+  const extraScripts = `
+  <script>
+    const categoryLabels = ${JSON.stringify(categoryTotals.map(c => c.category))};
+    const categoryData = ${JSON.stringify(categoryTotals.map(c => parseFloat(c.total)))};
+    const incomeTrendLabels = ${JSON.stringify(incomeTrend.map(i => i.month))};
+    const incomeTrendData = ${JSON.stringify(incomeTrend.map(i => parseFloat(i.total)))};
+    const expenseTrendLabels = ${JSON.stringify(expenseTrend.map(e => e.month))};
+    const expenseTrendData = ${JSON.stringify(expenseTrend.map(e => parseFloat(e.total)))};
+
+    const allMonths = [...new Set([...incomeTrendLabels, ...expenseTrendLabels])].sort();
+    const incomeMap = Object.fromEntries(incomeTrendLabels.map((m, i) => [m, incomeTrendData[i]]));
+    const expenseMap = Object.fromEntries(expenseTrendLabels.map((m, i) => [m, expenseTrendData[i]]));
+
+    new Chart(document.getElementById('categoryPieChart'), {
+      type: 'doughnut',
+      data: {
+        labels: categoryLabels.length ? categoryLabels : ['No data'],
+        datasets: [{
+          data: categoryData.length ? categoryData : [1],
+          backgroundColor: ['#0f7a4d','#38d996','#2f8fd6','#d99a1b','#e5484d','#8b5cf6','#6b7280'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }, title: { display: true, text: 'Expenses by Category' } }
+      }
+    });
+
+    new Chart(document.getElementById('trendBarChart'), {
+      type: 'bar',
+      data: {
+        labels: allMonths.length ? allMonths : ['This Month'],
+        datasets: [
+          { label: 'Income', data: allMonths.map(m => incomeMap[m] || 0), backgroundColor: '#38d996', borderRadius: 6 },
+          { label: 'Expense', data: allMonths.map(m => expenseMap[m] || 0), backgroundColor: '#e5484d', borderRadius: 6 }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }, title: { display: true, text: 'Income vs Expense Trend' } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  </script>
+  `;
+%>
+<% locals.extraScripts = extraScripts; %>

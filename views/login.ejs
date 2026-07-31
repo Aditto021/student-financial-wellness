@@ -1,0 +1,69 @@
+<div class="auth-wrapper">
+  <div class="row g-0 w-100">
+    <div class="col-lg-6 auth-visual d-none d-lg-flex">
+      <div class="auth-brand"><i class="fa-solid fa-seedling"></i> FinWell</div>
+      <div class="auth-quote">
+        "Master your money before it masters your semester."<br/>
+        Track income, control spending, and let the AI engine guide every decision.
+      </div>
+      <div class="auth-stats">
+        <div>
+          <div class="num">0-100</div>
+          <div class="lbl">Health Score Range</div>
+        </div>
+        <div>
+          <div class="num">7</div>
+          <div class="lbl">Expense Categories</div>
+        </div>
+        <div>
+          <div class="num">24/7</div>
+          <div class="lbl">AI Insights</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6 auth-form-side">
+      <div class="auth-card">
+        <div class="text-center mb-4">
+          <div class="logo-badge mx-auto mb-3" style="background:var(--mint-soft); color:var(--primary); width:52px; height:52px; border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:1.4rem;">
+            <i class="fa-solid fa-seedling"></i>
+          </div>
+          <h3>Welcome back</h3>
+          <p class="text-muted" style="color:var(--muted) !important;">Log in to continue managing your finances</p>
+        </div>
+
+        <% if (typeof errorMessages !== 'undefined' && errorMessages.length) { %>
+          <% errorMessages.forEach(msg => { %>
+            <div class="alert alert-danger border-0"><i class="fa-solid fa-triangle-exclamation me-1"></i> <%= msg %></div>
+          <% }) %>
+        <% } %>
+        <% if (typeof successMessages !== 'undefined' && successMessages.length) { %>
+          <% successMessages.forEach(msg => { %>
+            <div class="alert alert-success border-0"><i class="fa-solid fa-circle-check me-1"></i> <%= msg %></div>
+          <% }) %>
+        <% } %>
+
+        <form action="/auth/login" method="POST">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Email address</label>
+            <input type="email" name="email" class="form-control" placeholder="you@university.edu" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Password</label>
+            <input type="password" name="password" class="form-control" placeholder="••••••••" required />
+          </div>
+          <button type="submit" class="btn btn-brand w-100 py-2 mt-2">
+            <i class="fa-solid fa-right-to-bracket me-1"></i> Log In
+          </button>
+        </form>
+
+        <div class="text-center mt-4" style="color:var(--muted);">
+          Don't have an account? <a href="/auth/register" style="color:var(--primary); font-weight:600;">Create one</a>
+        </div>
+        <div class="text-center mt-2" style="font-size:0.8rem; color:var(--muted);">
+          Demo login: demo@student.com / Demo@1234
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

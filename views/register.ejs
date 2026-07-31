@@ -1,0 +1,76 @@
+<div class="auth-wrapper">
+  <div class="row g-0 w-100">
+    <div class="col-lg-6 auth-visual d-none d-lg-flex">
+      <div class="auth-brand"><i class="fa-solid fa-seedling"></i> FinWell</div>
+      <div class="auth-quote">
+        Join thousands of students turning scattered spending into a clear, confident plan.
+      </div>
+      <div class="auth-stats">
+        <div>
+          <div class="num">100%</div>
+          <div class="lbl">Free for Students</div>
+        </div>
+        <div>
+          <div class="num">Rule-Based</div>
+          <div class="lbl">AI Engine</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6 auth-form-side">
+      <div class="auth-card" style="max-width:460px;">
+        <div class="text-center mb-4">
+          <div class="logo-badge mx-auto mb-3" style="background:var(--mint-soft); color:var(--primary); width:52px; height:52px; border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:1.4rem;">
+            <i class="fa-solid fa-user-plus"></i>
+          </div>
+          <h3>Create your account</h3>
+          <p style="color:var(--muted);">Start your financial wellness journey today</p>
+        </div>
+
+        <% if (typeof errorMessages !== 'undefined' && errorMessages.length) { %>
+          <% errorMessages.forEach(msg => { %>
+            <div class="alert alert-danger border-0"><i class="fa-solid fa-triangle-exclamation me-1"></i> <%= msg %></div>
+          <% }) %>
+        <% } %>
+
+        <form action="/auth/register" method="POST">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Full Name</label>
+            <input type="text" name="fullName" class="form-control" placeholder="Jane Doe" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Email address</label>
+            <input type="email" name="email" class="form-control" placeholder="you@university.edu" required />
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-semibold">University <span class="text-muted small">(optional)</span></label>
+              <input type="text" name="university" class="form-control" placeholder="Your University" />
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-semibold">Student ID <span class="text-muted small">(optional)</span></label>
+              <input type="text" name="studentId" class="form-control" placeholder="STU-2026-001" />
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-semibold">Password</label>
+              <input type="password" name="password" class="form-control" placeholder="Min. 6 characters" required minlength="6" />
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label fw-semibold">Confirm Password</label>
+              <input type="password" name="confirmPassword" class="form-control" placeholder="Re-enter password" required minlength="6" />
+            </div>
+          </div>
+          <button type="submit" class="btn btn-brand w-100 py-2 mt-2">
+            <i class="fa-solid fa-user-plus me-1"></i> Create Account
+          </button>
+        </form>
+
+        <div class="text-center mt-4" style="color:var(--muted);">
+          Already have an account? <a href="/auth/login" style="color:var(--primary); font-weight:600;">Log in</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

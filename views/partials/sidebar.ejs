@@ -1,0 +1,36 @@
+<aside class="sidebar" id="appSidebar">
+  <div class="sidebar-brand">
+    <div class="logo-badge"><i class="fa-solid fa-seedling"></i></div>
+    <span>FinWell<span style="color:#38d996">.</span></span>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a href="/dashboard" class="nav-link <%= currentPath && currentPath.startsWith('/dashboard') ? 'active' : '' %>">
+      <i class="fa-solid fa-gauge-high"></i> Dashboard
+    </a>
+    <a href="/income" class="nav-link <%= currentPath && currentPath.startsWith('/income') ? 'active' : '' %>">
+      <i class="fa-solid fa-money-bill-trend-up"></i> Income
+    </a>
+    <a href="/expenses" class="nav-link <%= currentPath && currentPath.startsWith('/expenses') ? 'active' : '' %>">
+      <i class="fa-solid fa-cart-shopping"></i> Expenses
+    </a>
+    <a href="/budget" class="nav-link <%= currentPath && currentPath.startsWith('/budget') ? 'active' : '' %>">
+      <i class="fa-solid fa-piggy-bank"></i> Budget Planner
+    </a>
+    <a href="/reports" class="nav-link <%= currentPath && currentPath.startsWith('/reports') ? 'active' : '' %>">
+      <i class="fa-solid fa-file-invoice"></i> Reports
+    </a>
+    <a href="/profile" class="nav-link <%= currentPath && currentPath.startsWith('/profile') ? 'active' : '' %>">
+      <i class="fa-solid fa-user-gear"></i> Profile
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <form action="/auth/logout" method="POST">
+      <button type="submit" class="nav-link border-0 w-100 text-start" style="background:rgba(255,255,255,0.08);">
+        <i class="fa-solid fa-right-from-bracket"></i> Logout
+      </button>
+    </form>
+    <div class="mt-2 text-center" style="opacity:0.6;">v1.0 · AI Financial Engine</div>
+  </div>
+</aside>

@@ -672,48 +672,6 @@ a {
   margin-bottom: 14px;
 }
 
-/* Quick Add chips (small daily expenses) */
-.quick-add-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border-radius: 999px;
-  border: 1.5px solid var(--glass-border);
-  background: rgba(255, 255, 255, 0.5);
-  color: var(--ink);
-  font-weight: 600;
-  font-size: 0.88rem;
-  transition: all 0.15s ease;
-  cursor: pointer;
-}
-
-[data-theme="dark"] .quick-add-chip {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.quick-add-chip:hover {
-  border-color: var(--primary);
-  background: var(--mint-soft);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(15, 122, 77, 0.15);
-}
-
-.quick-add-chip:active {
-  transform: translateY(0);
-}
-
-.quick-add-icon {
-  font-size: 1.15rem;
-  line-height: 1;
-}
-
-.quick-add-amount {
-  color: var(--primary);
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 700;
-}
-
 /* Budget section tabs (Monthly / Daily) */
 .budget-tabs {
   display: inline-flex;

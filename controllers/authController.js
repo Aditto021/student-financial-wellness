@@ -10,7 +10,6 @@
 const bcrypt = require('bcryptjs');
 const { validationResult } = require('express-validator');
 const UserModel = require('../models/userModel');
-const QuickExpensePresetModel = require('../models/quickExpensePresetModel');
 
 const authController = {
   showRegister(req, res) {
@@ -50,10 +49,6 @@ const authController = {
         university,
         studentId
       });
-
-      QuickExpensePresetModel.seedDefaults(userId).catch((e) =>
-        console.error('Failed to seed default quick expense presets:', e.message)
-      );
 
       req.session.userId = userId;
       req.session.fullName = fullName.trim();

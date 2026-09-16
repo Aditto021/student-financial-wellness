@@ -13,8 +13,7 @@ external ML/LLM API required.
 - 🟢 **Google Sign-In** — "Continue with Google" on login/register (optional; auto-hidden until `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` are configured), auto-links to an existing email/password account with the same address
 - 📊 **Dashboard** — all-time total balance, this month's income/expense/savings, financial health score gauge, budget usage bar, today's spending snapshot, savings goal progress, category pie chart, income vs. expense trend chart, recent transactions
 - 💵 **Income Management** — full CRUD, search, date-range filter
-- 🧾 **Expense Management** — full CRUD across 7 categories, search, category + date filters
-- ⚡ **Quick Add (small daily expenses)** — tappable presets for frequent micro-purchases (coke, biscuit, travel fare...) that log an expense in one click, repeatable any number of times per day; new accounts start with a seeded starter set
+- 🧾 **Expense Management** — full CRUD across 7 categories, search, category + date filters, plus a quick manual-entry row (category, amount, description, defaults to today) for small everyday spends like coke, biscuit or travel fare
 - 🎯 **Monthly Budget Planner** — set a monthly budget; system auto-calculates spent, remaining, savings and usage %
 - 📆 **Daily Budget Planner** — auto-splits the monthly budget into a daily spending allowance (or set a custom one), tracks today's spend against it, and projects how much you'll have left for daily expenses by month end, with a full day-by-day breakdown table
 - 🔁 **Fixed Daily Expenses** — recurring day-to-day costs (Food, Travel Fare, etc.) logged as real expenses with one click instead of the full form, with a "Log All" shortcut and a flexible-budget-remaining-today figure

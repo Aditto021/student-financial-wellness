@@ -17,7 +17,6 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const UserModel = require('../models/userModel');
-const QuickExpensePresetModel = require('../models/quickExpensePresetModel');
 
 const isGoogleAuthEnabled = Boolean(
   process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_CALLBACK_URL
@@ -51,9 +50,6 @@ if (isGoogleAuthEnabled) {
                 googleId: profile.id,
                 profilePicture: null // keep local upload flow separate from Google's hosted photo URL
               });
-              QuickExpensePresetModel.seedDefaults(userId).catch((e) =>
-                console.error('Failed to seed default quick expense presets:', e.message)
-              );
               user = await UserModel.findById(userId);
             }
           }

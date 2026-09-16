@@ -55,26 +55,6 @@ CREATE TABLE expense (
 ) ENGINE=InnoDB;
 
 -- ------------------------------------------------------------------
--- Table: quick_expense_preset
--- Small, frequent everyday purchases (coke, biscuit, travel fare...)
--- a student can log in one tap instead of filling out the full
--- expense form. Unlike recurring_expense (Daily Budget Planner),
--- these are NOT limited to once per day — the same preset can be
--- tapped multiple times (e.g. bus fare there and back).
--- ------------------------------------------------------------------
-CREATE TABLE quick_expense_preset (
-    preset_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    label VARCHAR(100) NOT NULL,
-    category ENUM('Food','Transport','Education','Entertainment','Shopping','Medical','Others') NOT NULL,
-    amount DECIMAL(12,2) NOT NULL,
-    icon VARCHAR(10) DEFAULT NULL COMMENT 'Optional emoji shown on the quick-add chip',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_quick_expense_preset_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
-) ENGINE=InnoDB;
-
--- ------------------------------------------------------------------
 -- Table: budget
 -- ------------------------------------------------------------------
 CREATE TABLE budget (
@@ -161,7 +141,6 @@ CREATE TABLE reports (
 CREATE INDEX idx_income_user_date ON income(user_id, income_date);
 CREATE INDEX idx_expense_user_date ON expense(user_id, expense_date);
 CREATE INDEX idx_expense_category ON expense(category);
-CREATE INDEX idx_quick_expense_preset_user ON quick_expense_preset(user_id);
 CREATE INDEX idx_budget_user_month ON budget(user_id, month_year);
 CREATE INDEX idx_category_budget_user_month ON category_budget(user_id, month_year);
 CREATE INDEX idx_recurring_expense_user ON recurring_expense(user_id);

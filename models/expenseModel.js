@@ -89,6 +89,19 @@ const ExpenseModel = {
     return rows;
   },
 
+  /** Per-day totals within a given month (YYYY-MM) — powers the Daily Budget Planner. */
+  async getDailyTotals(userId, monthYear) {
+    const [rows] = await pool.query(
+      `SELECT DATE_FORMAT(expense_date, '%Y-%m-%d') AS day, SUM(amount) AS total
+       FROM expense
+       WHERE user_id = ? AND DATE_FORMAT(expense_date, '%Y-%m') = ?
+       GROUP BY day
+       ORDER BY day ASC`,
+      [userId, monthYear]
+    );
+    return rows;
+  },
+
   /** Monthly totals for the last N months (for trend charts). */
   async getMonthlyTotals(userId, months = 6) {
     const [rows] = await pool.query(

@@ -626,6 +626,40 @@ a {
   margin-bottom: 14px;
 }
 
+/* Budget section tabs (Monthly / Daily) */
+.budget-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 5px;
+  background: var(--glass);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  margin-bottom: 20px;
+}
+
+.budget-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--muted);
+  transition: all 0.15s ease;
+}
+
+.budget-tab:hover {
+  color: var(--primary);
+}
+
+.budget-tab.active {
+  background: linear-gradient(135deg, var(--primary), var(--mint));
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(15, 122, 77, 0.25);
+}
+
 /* Modal styling to match theme */
 .modal-content {
   border-radius: var(--radius-lg);

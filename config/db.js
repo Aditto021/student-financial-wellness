@@ -10,6 +10,10 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
+// Managed/cloud MySQL-compatible providers (TiDB Cloud, PlanetScale, etc.)
+// require TLS. Set DB_SSL=true in .env to enable it.
+const useSsl = process.env.DB_SSL === 'true';
+
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 3306,
@@ -19,7 +23,8 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  dateStrings: true
+  dateStrings: true,
+  ...(useSsl ? { ssl: { minVersion: 'TLSv1.2' } } : {})
 });
 
 // Simple helper to verify the DB connection on startup.

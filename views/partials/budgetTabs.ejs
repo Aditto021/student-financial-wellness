@@ -1,0 +1,8 @@
+<div class="budget-tabs">
+  <a href="/budget?month=<%= monthYear %>" class="budget-tab <%= activeTab === 'monthly' ? 'active' : '' %>">
+    <i class="fa-solid fa-piggy-bank"></i> Monthly Budget
+  </a>
+  <a href="/budget/daily?month=<%= monthYear %>" class="budget-tab <%= activeTab === 'daily' ? 'active' : '' %>">
+    <i class="fa-solid fa-calendar-days"></i> Daily Budget
+  </a>
+</div>

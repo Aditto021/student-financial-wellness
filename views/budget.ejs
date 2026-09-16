@@ -1,3 +1,5 @@
+<%- include('partials/budgetTabs', { monthYear, activeTab: 'monthly' }) %>
+
 <div class="row g-3 mb-4">
   <div class="col-lg-5">
     <div class="glass-card h-100">
@@ -91,6 +93,135 @@
           <div>You're within budget with ৳<%= remainingBudget.toFixed(2) %> remaining. Great financial discipline!</div>
         </div>
       <% } %>
+    </div>
+  </div>
+</div>
+
+<!-- Savings Goal + Category Budgets -->
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="glass-card h-100">
+      <div class="section-title"><i class="fa-solid fa-bullseye"></i> Savings Goal</div>
+
+      <% if (monthlyBudget === 0) { %>
+        <div class="empty-state">
+          <i class="fa-solid fa-bullseye"></i>
+          <p>Set a monthly budget first, then you can set a savings target for <%= monthYear %>.</p>
+        </div>
+      <% } else { %>
+        <form action="/budget/savings-goal" method="POST" class="mb-2">
+          <input type="hidden" name="monthYear" value="<%= monthYear %>" />
+          <div class="mb-3">
+            <label class="form-label">Target Savings for <%= monthYear %> (৳)</label>
+            <input type="number" step="0.01" min="0.01" name="savingsGoal" class="form-control"
+              value="<%= savingsGoal !== null ? savingsGoal.toFixed(2) : '' %>"
+              placeholder="e.g. 5000" required />
+          </div>
+          <button type="submit" class="btn btn-brand w-100"><i class="fa-solid fa-floppy-disk me-1"></i> Save Goal</button>
+        </form>
+        <% if (savingsGoal !== null) { %>
+          <form action="/budget/savings-goal/reset" method="POST" class="mb-4">
+            <input type="hidden" name="monthYear" value="<%= monthYear %>" />
+            <button type="submit" class="btn btn-outline-brand w-100 btn-sm"><i class="fa-solid fa-xmark me-1"></i> Remove Goal</button>
+          </form>
+
+          <div class="d-flex justify-content-between mb-2" style="font-size:0.9rem; color:var(--muted);">
+            <span>Progress toward goal</span>
+            <span><%= savingsGoalPct.toFixed(1) %>%</span>
+          </div>
+          <div class="progress-modern mb-3">
+            <div class="progress-bar-fill <%= savings < 0 ? 'over-limit' : '' %>" style="width: <%= Math.max(0, Math.min(100, savingsGoalPct)) %>%;"></div>
+          </div>
+
+          <% if (savings >= savingsGoal) { %>
+            <div class="rec-item severity-success mb-0">
+              <div class="rec-icon"><i class="fa-solid fa-circle-check"></i></div>
+              <div>Goal reached! You've saved ৳<%= savings.toFixed(2) %> of your ৳<%= savingsGoal.toFixed(2) %> target this month.</div>
+            </div>
+          <% } else if (savings < 0) { %>
+            <div class="rec-item severity-danger mb-0">
+              <div class="rec-icon"><i class="fa-solid fa-circle-exclamation"></i></div>
+              <div>You're spending more than you earn this month, so your savings goal of ৳<%= savingsGoal.toFixed(2) %> is currently out of reach.</div>
+            </div>
+          <% } else { %>
+            <div class="rec-item severity-info mb-0">
+              <div class="rec-icon"><i class="fa-solid fa-circle-info"></i></div>
+              <div>You need ৳<%= (savingsGoal - savings).toFixed(2) %> more to hit your ৳<%= savingsGoal.toFixed(2) %> goal for <%= monthYear %>.</div>
+            </div>
+          <% } %>
+        <% } else { %>
+          <p style="color:var(--muted); font-size:0.85rem;">
+            Right now you're on track to save ৳<%= savings.toFixed(2) %> this month (income minus expenses). Set a target above to track progress toward it.
+          </p>
+        <% } %>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="glass-card h-100">
+      <div class="section-title"><i class="fa-solid fa-layer-group"></i> Category Budgets — <%= monthYear %></div>
+      <p style="color:var(--muted); font-size:0.85rem; margin-top:-10px;">
+        Set a spending limit per category (envelope budgeting) to see exactly where your money should go and how much of each envelope is left.
+      </p>
+
+      <form action="/budget/category" method="POST" class="row g-2 mb-3">
+        <input type="hidden" name="monthYear" value="<%= monthYear %>" />
+        <div class="col-5">
+          <select name="category" id="categoryBudgetSelect" class="form-select" required>
+            <% categories.forEach(cat => { %>
+              <option value="<%= cat %>"><%= cat %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-4">
+          <input type="number" step="0.01" min="0.01" name="budgetAmount" id="categoryBudgetAmount" class="form-control" placeholder="Amount (৳)" required />
+        </div>
+        <div class="col-3">
+          <button type="submit" class="btn btn-brand w-100"><i class="fa-solid fa-plus"></i> Set</button>
+        </div>
+      </form>
+
+      <div class="table-responsive">
+        <table class="table table-modern mb-0">
+          <thead><tr><th>Category</th><th class="text-end">Budget</th><th class="text-end">Spent</th><th class="text-end">Remaining</th><th class="text-end">Actions</th></tr></thead>
+          <tbody>
+            <% categoryBudgets.forEach(cb => { %>
+              <tr>
+                <td><span class="badge-category badge-<%= cb.category.toLowerCase() %>"><%= cb.category %></span></td>
+                <% if (cb.isSet) { %>
+                  <td class="text-end amount">৳<%= cb.budgetAmount.toFixed(2) %></td>
+                  <td class="text-end amount"><%= cb.spent > 0 ? '৳' + cb.spent.toFixed(2) : '—' %></td>
+                  <td class="text-end amount" style="color: <%= cb.remaining < 0 ? 'var(--danger)' : 'inherit' %>;">৳<%= cb.remaining.toFixed(2) %></td>
+                  <td class="text-end">
+                    <button type="button" class="action-icon-btn me-1" title="Edit"
+                      onclick="document.getElementById('categoryBudgetSelect').value='<%= cb.category %>'; document.getElementById('categoryBudgetAmount').value='<%= cb.budgetAmount.toFixed(2) %>'; document.getElementById('categoryBudgetAmount').focus();">
+                      <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <form action="/budget/category/<%= cb.categoryBudgetId %>/delete" method="POST" class="d-inline confirm-delete" data-label="the <%= cb.category %> budget">
+                      <input type="hidden" name="monthYear" value="<%= monthYear %>" />
+                      <button type="submit" class="action-icon-btn danger" title="Remove"><i class="fa-solid fa-trash"></i></button>
+                    </form>
+                  </td>
+                <% } else { %>
+                  <td class="text-end" colspan="2" style="color:var(--muted);">Not set</td>
+                  <td class="text-end amount"><%= cb.spent > 0 ? '৳' + cb.spent.toFixed(2) + ' spent' : '—' %></td>
+                  <td class="text-end" style="color:var(--muted); font-size:0.8rem;">—</td>
+                <% } %>
+              </tr>
+              <% if (cb.isSet) { %>
+                <tr>
+                  <td colspan="5" style="padding-top:0; padding-bottom:14px; border-bottom:1px solid var(--glass-border);">
+                    <div class="progress-modern">
+                      <div class="progress-bar-fill <%= cb.overBudget ? 'over-limit' : '' %>" style="width: <%= Math.min(100, cb.pct) %>%;"></div>
+                    </div>
+                  </td>
+                </tr>
+              <% } %>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>

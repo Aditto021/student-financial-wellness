@@ -1,27 +1,34 @@
 <!-- Stat cards -->
 <div class="row g-3 mb-4">
-  <div class="col-6 col-lg-3">
+  <div class="col-6 col-lg">
+    <div class="glass-card stat-card h-100" style="border-color: rgba(15,122,77,0.35);">
+      <div class="stat-icon icon-savings"><i class="fa-solid fa-scale-balanced"></i></div>
+      <div class="stat-label">Total Balance (All-Time)</div>
+      <div class="stat-value" style="color: <%= totalBalance < 0 ? 'var(--danger)' : 'inherit' %>;">৳<%= totalBalance.toFixed(2) %></div>
+    </div>
+  </div>
+  <div class="col-6 col-lg">
     <div class="glass-card stat-card h-100">
       <div class="stat-icon icon-income"><i class="fa-solid fa-arrow-trend-up"></i></div>
-      <div class="stat-label">Total Income</div>
+      <div class="stat-label">Income This Month</div>
       <div class="stat-value">৳<%= totalIncome.toFixed(2) %></div>
     </div>
   </div>
-  <div class="col-6 col-lg-3">
+  <div class="col-6 col-lg">
     <div class="glass-card stat-card h-100">
       <div class="stat-icon icon-expense"><i class="fa-solid fa-arrow-trend-down"></i></div>
-      <div class="stat-label">Total Expense</div>
+      <div class="stat-label">Expense This Month</div>
       <div class="stat-value">৳<%= totalExpense.toFixed(2) %></div>
     </div>
   </div>
-  <div class="col-6 col-lg-3">
+  <div class="col-6 col-lg">
     <div class="glass-card stat-card h-100">
       <div class="stat-icon icon-savings"><i class="fa-solid fa-piggy-bank"></i></div>
-      <div class="stat-label">Total Savings</div>
+      <div class="stat-label">Savings This Month</div>
       <div class="stat-value">৳<%= totalSavings.toFixed(2) %></div>
     </div>
   </div>
-  <div class="col-6 col-lg-3">
+  <div class="col-6 col-lg">
     <div class="glass-card stat-card h-100">
       <div class="stat-icon icon-budget"><i class="fa-solid fa-wallet"></i></div>
       <div class="stat-label">Monthly Budget</div>
@@ -87,6 +94,78 @@
           <canvas id="trendBarChart" height="200"></canvas>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <!-- Daily Budget snapshot -->
+  <div class="col-lg-6">
+    <div class="glass-card h-100">
+      <div class="section-title"><i class="fa-solid fa-calendar-days"></i> Today's Spending</div>
+      <% if (monthlyBudget === 0) { %>
+        <div class="empty-state" style="padding:24px 20px;">
+          <i class="fa-solid fa-calendar-days"></i>
+          <p>Set a monthly budget to see your daily spending allowance.</p>
+        </div>
+      <% } else { %>
+        <div class="row g-3 mb-3">
+          <div class="col-4">
+            <div class="stat-label">Daily Budget</div>
+            <div class="stat-value" style="font-size:1.1rem;">৳<%= dailyBudget.toFixed(2) %></div>
+          </div>
+          <div class="col-4">
+            <div class="stat-label">Spent Today</div>
+            <div class="stat-value" style="font-size:1.1rem;">৳<%= todaySpent.toFixed(2) %></div>
+          </div>
+          <div class="col-4">
+            <div class="stat-label">Left Today</div>
+            <div class="stat-value" style="font-size:1.1rem; color: <%= dailyRemaining < 0 ? 'var(--danger)' : 'var(--primary)' %>;">
+              ৳<%= dailyRemaining.toFixed(2) %>
+            </div>
+          </div>
+        </div>
+        <% const todayPct = dailyBudget > 0 ? Math.min(100, (todaySpent / dailyBudget) * 100) : 0; %>
+        <div class="progress-modern mb-3">
+          <div class="progress-bar-fill <%= dailyRemaining < 0 ? 'over-limit' : '' %>" style="width: <%= todayPct %>%;"></div>
+        </div>
+        <a href="/budget/daily" style="color:var(--primary); font-weight:600; font-size:0.85rem;">
+          View full daily breakdown <i class="fa-solid fa-arrow-right ms-1"></i>
+        </a>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Savings Goal snapshot -->
+  <div class="col-lg-6">
+    <div class="glass-card h-100">
+      <div class="section-title"><i class="fa-solid fa-bullseye"></i> Savings Goal</div>
+      <% if (savingsGoal === null) { %>
+        <div class="empty-state" style="padding:24px 20px;">
+          <i class="fa-solid fa-bullseye"></i>
+          <p>You're on track to save ৳<%= totalSavings.toFixed(2) %> this month. Set a savings goal to track progress toward a target.</p>
+          <a href="/budget" class="btn btn-brand btn-sm mt-1"><i class="fa-solid fa-bullseye me-1"></i> Set a Goal</a>
+        </div>
+      <% } else { %>
+        <div class="d-flex justify-content-between mb-2" style="font-size:0.9rem; color:var(--muted);">
+          <span>৳<%= totalSavings.toFixed(2) %> saved of ৳<%= savingsGoal.toFixed(2) %> goal</span>
+          <span><%= savingsGoalPct.toFixed(1) %>%</span>
+        </div>
+        <div class="progress-modern mb-3">
+          <div class="progress-bar-fill <%= totalSavings < 0 ? 'over-limit' : '' %>" style="width: <%= Math.max(0, Math.min(100, savingsGoalPct)) %>%;"></div>
+        </div>
+        <% if (totalSavings >= savingsGoal) { %>
+          <div class="rec-item severity-success mb-0">
+            <div class="rec-icon"><i class="fa-solid fa-circle-check"></i></div>
+            <div>Goal reached for <%= monthYear %>! Great work.</div>
+          </div>
+        <% } else { %>
+          <div class="rec-item severity-info mb-0">
+            <div class="rec-icon"><i class="fa-solid fa-circle-info"></i></div>
+            <div>৳<%= (savingsGoal - totalSavings).toFixed(2) %> more to reach your goal this month.</div>
+          </div>
+        <% } %>
+      <% } %>
     </div>
   </div>
 </div>

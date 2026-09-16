@@ -11,12 +11,20 @@ const { pool } = require('../config/db');
 
 const BudgetModel = {
   /** Create or update (upsert) the budget for a given month. */
-  async upsert(userId, monthYear, monthlyBudget) {
+  async upsert(userId, monthYear, monthlyBudget, dailyBudget = null, savingsGoal = null) {
     await pool.query(
-      `INSERT INTO budget (user_id, month_year, monthly_budget)
-       VALUES (?, ?, ?)
-       ON DUPLICATE KEY UPDATE monthly_budget = VALUES(monthly_budget)`,
-      [userId, monthYear, monthlyBudget]
+      `INSERT INTO budget (user_id, month_year, monthly_budget, daily_budget, savings_goal)
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE monthly_budget = VALUES(monthly_budget), daily_budget = VALUES(daily_budget), savings_goal = VALUES(savings_goal)`,
+      [userId, monthYear, monthlyBudget, dailyBudget, savingsGoal]
+    );
+  },
+
+  /** Set (or clear) just the savings goal for a month, without touching the rest. */
+  async setSavingsGoal(userId, monthYear, savingsGoal) {
+    await pool.query(
+      `UPDATE budget SET savings_goal = ? WHERE user_id = ? AND month_year = ?`,
+      [savingsGoal, userId, monthYear]
     );
   },
 

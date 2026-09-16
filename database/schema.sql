@@ -61,10 +61,48 @@ CREATE TABLE budget (
     user_id INT NOT NULL,
     month_year CHAR(7) NOT NULL COMMENT 'Format: YYYY-MM',
     monthly_budget DECIMAL(12,2) NOT NULL,
+    daily_budget DECIMAL(12,2) DEFAULT NULL COMMENT 'Optional custom daily spending allowance; auto-derived from monthly_budget when NULL',
+    savings_goal DECIMAL(12,2) DEFAULT NULL COMMENT 'Optional target amount the student wants to save this month',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_budget_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     UNIQUE KEY uq_user_month (user_id, month_year)
+) ENGINE=InnoDB;
+
+-- ------------------------------------------------------------------
+-- Table: category_budget
+-- Per-category monthly spending limits (envelope-style budgeting),
+-- e.g. "Food: ৳5000 this month". Independent of the overall
+-- monthly_budget on the `budget` table.
+-- ------------------------------------------------------------------
+CREATE TABLE category_budget (
+    category_budget_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    month_year CHAR(7) NOT NULL COMMENT 'Format: YYYY-MM',
+    category ENUM('Food','Transport','Education','Entertainment','Shopping','Medical','Others') NOT NULL,
+    budget_amount DECIMAL(12,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_category_budget_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    UNIQUE KEY uq_user_month_category (user_id, month_year, category)
+) ENGINE=InnoDB;
+
+-- ------------------------------------------------------------------
+-- Table: recurring_expense
+-- Fixed/recurring daily costs (e.g. Food, Travel Fare) that a
+-- student can log with one click each day instead of re-entering
+-- the full expense form every time.
+-- ------------------------------------------------------------------
+CREATE TABLE recurring_expense (
+    recurring_expense_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    label VARCHAR(100) NOT NULL,
+    category ENUM('Food','Transport','Education','Entertainment','Shopping','Medical','Others') NOT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    last_logged_date DATE DEFAULT NULL COMMENT 'Date this was last logged as a real expense; used to show today''s status',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_recurring_expense_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ------------------------------------------------------------------
@@ -103,6 +141,8 @@ CREATE INDEX idx_income_user_date ON income(user_id, income_date);
 CREATE INDEX idx_expense_user_date ON expense(user_id, expense_date);
 CREATE INDEX idx_expense_category ON expense(category);
 CREATE INDEX idx_budget_user_month ON budget(user_id, month_year);
+CREATE INDEX idx_category_budget_user_month ON category_budget(user_id, month_year);
+CREATE INDEX idx_recurring_expense_user ON recurring_expense(user_id);
 CREATE INDEX idx_recommendation_user ON recommendations(user_id);
 CREATE INDEX idx_reports_user_month ON reports(user_id, month_year);
 
@@ -115,7 +155,7 @@ INSERT INTO users (full_name, email, password_hash, university, student_id)
 VALUES (
   'Demo Student',
   'demo@student.com',
-  '$2a$10$8KzQxg6nJ1G7q4H2gk1uzeqzR8O8x6M1jXwq7q3nq0d9m5s8p2ZQ2',
+  '$2a$10$lq5nDnALm.MLbqueDWpL5OGwce2hWwiw9QmTy3NpqcMDHdAdhpoZO',
   'Demo University',
   'STU-2026-001'
 );

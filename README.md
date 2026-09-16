@@ -10,10 +10,14 @@ external ML/LLM API required.
 ## ✨ Features
 
 - 🔐 **Authentication** — registration, secure login (bcrypt password hashing), sessions, logout, editable profile with picture upload
-- 📊 **Dashboard** — total income/expense/savings, financial health score gauge, budget usage bar, category pie chart, income vs. expense trend chart, recent transactions
+- 📊 **Dashboard** — all-time total balance, this month's income/expense/savings, financial health score gauge, budget usage bar, today's spending snapshot, savings goal progress, category pie chart, income vs. expense trend chart, recent transactions
 - 💵 **Income Management** — full CRUD, search, date-range filter
 - 🧾 **Expense Management** — full CRUD across 7 categories, search, category + date filters
-- 🎯 **Budget Planner** — set a monthly budget; system auto-calculates spent, remaining, savings and usage %
+- 🎯 **Monthly Budget Planner** — set a monthly budget; system auto-calculates spent, remaining, savings and usage %
+- 📆 **Daily Budget Planner** — auto-splits the monthly budget into a daily spending allowance (or set a custom one), tracks today's spend against it, and projects how much you'll have left for daily expenses by month end, with a full day-by-day breakdown table
+- 🔁 **Fixed Daily Expenses** — recurring day-to-day costs (Food, Travel Fare, etc.) logged as real expenses with one click instead of the full form, with a "Log All" shortcut and a flexible-budget-remaining-today figure
+- 🧮 **Category Budgets** — envelope-style limits per expense category (Food, Transport, etc.), each tracked against actual spend for the month
+- 🏆 **Savings Goal** — set a monthly savings target and track progress against actual income minus expenses, surfaced on both the Dashboard and Budget Planner
 - 🤖 **Rule-Based AI Recommendation Engine** — a deterministic scoring + rules system that generates a 0–100 Financial Health Score and personalized advice (see [`services/aiEngine.js`](./services/aiEngine.js))
 - 📄 **Reports** — monthly summary, PDF export (pdfkit), CSV export (json2csv), report history log
 - 🌗 **Dark Mode**, 🔍 **Search & Filter**, 📤 **CSV Export**, 🖼️ **Profile Picture Upload**

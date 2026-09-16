@@ -76,14 +76,20 @@ const profileController = {
 
     try {
       const user = await UserModel.findById(userId);
-      const isMatch = await bcrypt.compare(currentPassword || '', user.password_hash);
-      if (!isMatch) {
-        req.flash('error', 'Current password is incorrect.');
-        return res.redirect('/profile');
+
+      // Google-only accounts have no existing password to verify —
+      // let them set one for the first time instead of checking it.
+      if (user.password_hash) {
+        const isMatch = await bcrypt.compare(currentPassword || '', user.password_hash);
+        if (!isMatch) {
+          req.flash('error', 'Current password is incorrect.');
+          return res.redirect('/profile');
+        }
       }
+
       const newHash = await bcrypt.hash(newPassword, 10);
       await UserModel.updatePassword(userId, newHash);
-      req.flash('success', 'Password changed successfully.');
+      req.flash('success', user.password_hash ? 'Password changed successfully.' : 'Password set successfully. You can now log in with your email too.');
       res.redirect('/profile');
     } catch (err) {
       console.error('Change password error:', err);

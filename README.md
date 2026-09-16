@@ -10,9 +10,11 @@ external ML/LLM API required.
 ## ✨ Features
 
 - 🔐 **Authentication** — registration, secure login (bcrypt password hashing), sessions, logout, editable profile with picture upload
+- 🟢 **Google Sign-In** — "Continue with Google" on login/register (optional; auto-hidden until `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` are configured), auto-links to an existing email/password account with the same address
 - 📊 **Dashboard** — all-time total balance, this month's income/expense/savings, financial health score gauge, budget usage bar, today's spending snapshot, savings goal progress, category pie chart, income vs. expense trend chart, recent transactions
 - 💵 **Income Management** — full CRUD, search, date-range filter
 - 🧾 **Expense Management** — full CRUD across 7 categories, search, category + date filters
+- ⚡ **Quick Add (small daily expenses)** — tappable presets for frequent micro-purchases (coke, biscuit, travel fare...) that log an expense in one click, repeatable any number of times per day; new accounts start with a seeded starter set
 - 🎯 **Monthly Budget Planner** — set a monthly budget; system auto-calculates spent, remaining, savings and usage %
 - 📆 **Daily Budget Planner** — auto-splits the monthly budget into a daily spending allowance (or set a custom one), tracks today's spend against it, and projects how much you'll have left for daily expenses by month end, with a full day-by-day breakdown table
 - 🔁 **Fixed Daily Expenses** — recurring day-to-day costs (Food, Travel Fare, etc.) logged as real expenses with one click instead of the full form, with a "Log All" shortcut and a flexible-budget-remaining-today figure
@@ -173,7 +175,25 @@ DB_PASSWORD=your_mysql_password
 DB_NAME=student_financial_wellness
 ```
 
-### 4. Run the application
+### 4. (Optional) Enable Google Sign-In
+
+The "Continue with Google" button is hidden automatically until these are
+set — the app works fine without it.
+
+1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials), create an **OAuth 2.0 Client ID** (Application type: **Web application**)
+2. Add an **Authorized redirect URI**: `http://localhost:3000/auth/google/callback` (add your production URL's equivalent too, e.g. `https://your-app.onrender.com/auth/google/callback`)
+3. Add to `.env`:
+
+```env
+GOOGLE_CLIENT_ID=your_client_id
+GOOGLE_CLIENT_SECRET=your_client_secret
+GOOGLE_CALLBACK_URL=http://localhost:3000/auth/google/callback
+```
+
+A Google sign-in automatically links to an existing account if the email
+already matches one created with a password.
+
+### 5. Run the application
 
 ```bash
 npm start

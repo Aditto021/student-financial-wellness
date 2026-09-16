@@ -47,12 +47,19 @@
     </div>
 
     <div class="glass-card">
-      <div class="section-title"><i class="fa-solid fa-lock"></i> Change Password</div>
+      <div class="section-title"><i class="fa-solid fa-lock"></i> <%= profileUser.password_hash ? 'Change Password' : 'Set a Password' %></div>
+      <% if (!profileUser.password_hash) { %>
+        <p style="color:var(--muted); font-size:0.85rem; margin-top:-10px;">
+          Your account signed up with Google and has no password yet. Set one below to also be able to log in with your email.
+        </p>
+      <% } %>
       <form action="/profile/change-password" method="POST">
-        <div class="mb-3">
-          <label class="form-label">Current Password</label>
-          <input type="password" name="currentPassword" class="form-control" required />
-        </div>
+        <% if (profileUser.password_hash) { %>
+          <div class="mb-3">
+            <label class="form-label">Current Password</label>
+            <input type="password" name="currentPassword" class="form-control" required />
+          </div>
+        <% } %>
         <div class="row">
           <div class="col-md-6 mb-3">
             <label class="form-label">New Password</label>
@@ -63,7 +70,7 @@
             <input type="password" name="confirmNewPassword" class="form-control" minlength="6" required />
           </div>
         </div>
-        <button type="submit" class="btn btn-brand"><i class="fa-solid fa-key me-1"></i> Update Password</button>
+        <button type="submit" class="btn btn-brand"><i class="fa-solid fa-key me-1"></i> <%= profileUser.password_hash ? 'Update Password' : 'Set Password' %></button>
       </form>
     </div>
   </div>

@@ -10,6 +10,7 @@
 const bcrypt = require('bcryptjs');
 const { validationResult } = require('express-validator');
 const UserModel = require('../models/userModel');
+const QuickExpensePresetModel = require('../models/quickExpensePresetModel');
 
 const authController = {
   showRegister(req, res) {
@@ -50,6 +51,10 @@ const authController = {
         studentId
       });
 
+      QuickExpensePresetModel.seedDefaults(userId).catch((e) =>
+        console.error('Failed to seed default quick expense presets:', e.message)
+      );
+
       req.session.userId = userId;
       req.session.fullName = fullName.trim();
       req.flash('success', 'Account created successfully! Welcome aboard.');
@@ -68,6 +73,11 @@ const authController = {
       const user = await UserModel.findByEmail((email || '').toLowerCase().trim());
       if (!user) {
         req.flash('error', 'Invalid email or password.');
+        return res.redirect('/auth/login');
+      }
+
+      if (!user.password_hash) {
+        req.flash('error', 'This account signed up with Google. Use "Continue with Google" to log in.');
         return res.redirect('/auth/login');
       }
 
@@ -92,6 +102,15 @@ const authController = {
     req.session.destroy(() => {
       res.redirect('/auth/login');
     });
+  },
+
+  /** Runs after passport's Google strategy has already found/created req.user. */
+  googleCallback(req, res) {
+    const user = req.user;
+    req.session.userId = user.user_id;
+    req.session.fullName = user.full_name;
+    req.flash('success', `Welcome, ${user.full_name.split(' ')[0]}!`);
+    res.redirect('/dashboard');
   }
 };
 

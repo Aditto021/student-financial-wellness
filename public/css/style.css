@@ -222,6 +222,52 @@ a {
   color: #fff;
 }
 
+.btn-google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #fff;
+  color: #3c4043;
+  border: 1.5px solid #dadce0;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.92rem;
+  transition: all 0.15s ease;
+}
+
+.btn-google:hover {
+  background: #f8f9fa;
+  color: #3c4043;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="dark"] .btn-google {
+  background: #fff;
+  color: #3c4043;
+  border-color: #dadce0;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin: 4px 0 18px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.auth-divider span {
+  padding: 0 12px;
+}
+
 /* ---------------------------------------------------------------
    App shell: sidebar + topbar
    --------------------------------------------------------------- */
@@ -624,6 +670,48 @@ a {
   font-size: 2.4rem;
   color: var(--glass-border);
   margin-bottom: 14px;
+}
+
+/* Quick Add chips (small daily expenses) */
+.quick-add-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.88rem;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+[data-theme="dark"] .quick-add-chip {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.quick-add-chip:hover {
+  border-color: var(--primary);
+  background: var(--mint-soft);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(15, 122, 77, 0.15);
+}
+
+.quick-add-chip:active {
+  transform: translateY(0);
+}
+
+.quick-add-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.quick-add-amount {
+  color: var(--primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
 }
 
 /* Budget section tabs (Monthly / Daily) */

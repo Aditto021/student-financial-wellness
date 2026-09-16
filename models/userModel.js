@@ -20,6 +20,27 @@ const UserModel = {
     return result.insertId;
   },
 
+  /** Create a new user signed up via Google (no local password). */
+  async createFromGoogle({ fullName, email, googleId, profilePicture }) {
+    const [result] = await pool.query(
+      `INSERT INTO users (full_name, email, google_id, profile_picture)
+       VALUES (?, ?, ?, ?)`,
+      [fullName, email, googleId, profilePicture || null]
+    );
+    return result.insertId;
+  },
+
+  /** Link a Google account to an existing (email/password) user. */
+  async linkGoogleId(userId, googleId) {
+    await pool.query('UPDATE users SET google_id = ? WHERE user_id = ?', [googleId, userId]);
+  },
+
+  /** Find a user by their Google account ID. */
+  async findByGoogleId(googleId) {
+    const [rows] = await pool.query('SELECT * FROM users WHERE google_id = ? LIMIT 1', [googleId]);
+    return rows[0] || null;
+  },
+
   /** Find a user by email (used during login). */
   async findByEmail(email) {
     const [rows] = await pool.query('SELECT * FROM users WHERE email = ? LIMIT 1', [email]);

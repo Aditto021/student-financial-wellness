@@ -17,6 +17,7 @@ const expressLayouts = require('express-ejs-layouts');
 const { testConnection } = require('./config/db');
 const { requireAuth } = require('./middleware/auth');
 const UserModel = require('./models/userModel');
+const { passport, isGoogleAuthEnabled } = require('./config/passport');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -50,6 +51,7 @@ app.use(
 );
 
 app.use(flash());
+app.use(passport.initialize());
 
 // ---------------------------------------------------------------
 // Global template locals (available in every view)
@@ -62,6 +64,7 @@ app.use(async (req, res, next) => {
   res.locals.currentPath = req.path;
   res.locals.darkMode = false;
   res.locals.profilePicture = null;
+  res.locals.isGoogleAuthEnabled = isGoogleAuthEnabled;
 
   if (req.session.userId) {
     try {

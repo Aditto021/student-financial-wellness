@@ -11,16 +11,22 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const session = require('express-session');
+const MySQLStore = require('express-mysql-session')(session);
 const flash = require('connect-flash');
 const expressLayouts = require('express-ejs-layouts');
 
-const { testConnection } = require('./config/db');
+const { pool, testConnection } = require('./config/db');
 const { requireAuth } = require('./middleware/auth');
 const UserModel = require('./models/userModel');
 const { passport, isGoogleAuthEnabled } = require('./config/passport');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Trust Render's (or any) reverse proxy so req.secure correctly
+// reflects the original HTTPS request — required for the session
+// cookie's `secure` flag to work behind a proxy.
+app.set('trust proxy', 1);
 
 // ---------------------------------------------------------------
 // View engine
@@ -38,14 +44,38 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Sessions are stored in the database (not in server memory) so a
+// login survives server restarts — which happen on every redeploy,
+// and on Render's free tier whenever the service spins down from
+// inactivity and back up. A MemoryStore-backed session would (and
+// did) silently log everyone out each time that happened.
+const sessionStore = new MySQLStore(
+  {
+    clearExpired: true,
+    checkExpirationInterval: 15 * 60 * 1000, // sweep expired sessions every 15 min
+    expiration: 1000 * 60 * 60 * 24 * 30 // 30 days, matches the cookie below
+  },
+  pool
+);
+sessionStore.onReady().catch((err) => {
+  console.error('❌  Session store failed to initialize:', err.message);
+});
+sessionStore.on('error', (err) => {
+  console.error('Session store error:', err.message);
+});
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'fallback_dev_secret',
+    store: sessionStore,
     resave: false,
     saveUninitialized: false,
+    rolling: true, // keep resetting maxAge on activity — active users never get logged out
     cookie: {
-      maxAge: 1000 * 60 * 60 * 4, // 4 hours
-      httpOnly: true
+      maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
     }
   })
 );

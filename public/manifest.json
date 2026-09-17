@@ -1,0 +1,36 @@
+{
+  "name": "FinWell — Student Financial Wellness",
+  "short_name": "FinWell",
+  "description": "AI-powered student financial wellness platform — track income, expenses, budgets and daily spending.",
+  "start_url": "/budget/daily",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#eef9f3",
+  "theme_color": "#0f7a4d",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Daily Budget",
+      "short_name": "Daily Budget",
+      "description": "Jump straight to your daily budget planner",
+      "url": "/budget/daily",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Add Expense",
+      "short_name": "Expenses",
+      "url": "/expenses",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

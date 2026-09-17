@@ -8,6 +8,17 @@
  * -----------------------------------------------------------------
  */
 
+// Register the PWA service worker (enables "Add to Home Screen").
+// Not tied to DOMContentLoaded — the spec recommends waiting for the
+// load event so registration doesn't compete with page resources.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      console.error('Service worker registration failed:', err);
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // ---------------------------------------------------------------
   // Mobile sidebar toggle
@@ -63,6 +74,60 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
+
+  // ---------------------------------------------------------------
+  // "Add to Home Screen" banner (Daily Budget page — the page most
+  // students want one-tap access to). Hidden on desktop, once the
+  // app is already installed, or after the user dismisses it once.
+  // ---------------------------------------------------------------
+  const a2hsBanner = document.getElementById('a2hsBanner');
+  if (a2hsBanner) {
+    const DISMISS_KEY = 'finwell_a2hs_dismissed';
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    let isDismissed = false;
+    try { isDismissed = localStorage.getItem(DISMISS_KEY) === 'true'; } catch (e) { /* private mode etc. */ }
+
+    const ua = navigator.userAgent || '';
+    const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+    const isAndroid = /Android/.test(ua);
+
+    if (!isStandalone && !isDismissed && (isIOS || isAndroid)) {
+      a2hsBanner.style.display = '';
+      const textEl = document.getElementById('a2hsText');
+      const installBtn = document.getElementById('a2hsInstallBtn');
+
+      if (textEl) {
+        textEl.textContent = isIOS
+          ? 'Tap the Share icon, then "Add to Home Screen" — it opens straight to this page.'
+          : 'Tap the ⋮ menu, then "Add to Home screen" (or use Install below if it appears).';
+      }
+
+      let deferredPrompt = null;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        if (installBtn) installBtn.style.display = '';
+      });
+
+      if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+          if (!deferredPrompt) return;
+          deferredPrompt.prompt();
+          await deferredPrompt.userChoice;
+          deferredPrompt = null;
+          installBtn.style.display = 'none';
+        });
+      }
+    }
+
+    const dismissBtn = document.getElementById('a2hsDismissBtn');
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', () => {
+        a2hsBanner.style.display = 'none';
+        try { localStorage.setItem(DISMISS_KEY, 'true'); } catch (e) { /* private mode etc. */ }
+      });
+    }
+  }
 
   // ---------------------------------------------------------------
   // Auto-dismiss flash alerts after 5 seconds

@@ -11,6 +11,19 @@ const bcrypt = require('bcryptjs');
 const { validationResult } = require('express-validator');
 const UserModel = require('../models/userModel');
 
+/**
+ * Where to send a user right after they log in. Honors the page
+ * requireAuth remembered them trying to reach (see middleware/auth.js)
+ * — important for a PWA pinned straight to a specific page (e.g.
+ * /budget/daily): if the session expired, logging back in returns
+ * to that same page instead of always landing on /dashboard.
+ */
+function postLoginRedirect(req) {
+  const returnTo = req.session.returnTo;
+  delete req.session.returnTo;
+  return returnTo && returnTo.startsWith('/') ? returnTo : '/dashboard';
+}
+
 const authController = {
   showRegister(req, res) {
     res.render('register', { title: 'Create Account' });
@@ -85,7 +98,7 @@ const authController = {
       req.session.userId = user.user_id;
       req.session.fullName = user.full_name;
       req.flash('success', `Welcome back, ${user.full_name.split(' ')[0]}!`);
-      return res.redirect('/dashboard');
+      return res.redirect(postLoginRedirect(req));
     } catch (err) {
       console.error('Login error:', err);
       req.flash('error', 'Something went wrong. Please try again.');
@@ -105,7 +118,7 @@ const authController = {
     req.session.userId = user.user_id;
     req.session.fullName = user.full_name;
     req.flash('success', `Welcome, ${user.full_name.split(' ')[0]}!`);
-    res.redirect('/dashboard');
+    res.redirect(postLoginRedirect(req));
   }
 };
 

@@ -1,5 +1,25 @@
 <%- include('partials/budgetTabs', { monthYear, activeTab: 'daily' }) %>
 
+<div class="glass-card mb-4" id="a2hsBanner" style="display:none;">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+    <div class="d-flex align-items-center gap-3">
+      <div class="stat-icon icon-budget" style="margin-bottom:0;"><i class="fa-solid fa-mobile-screen-button"></i></div>
+      <div>
+        <div class="fw-semibold" style="font-family:'Sora', sans-serif;">Add Daily Budget to your Home Screen</div>
+        <div id="a2hsText" style="color:var(--muted); font-size:0.85rem;">Get one-tap access, styled like an app.</div>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <button type="button" id="a2hsInstallBtn" class="btn btn-brand btn-sm" style="display:none;">
+        <i class="fa-solid fa-download me-1"></i> Install
+      </button>
+      <button type="button" id="a2hsDismissBtn" class="action-icon-btn" title="Dismiss">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="glass-card mb-4">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
     <div class="section-title mb-0"><i class="fa-solid fa-calendar-days"></i> Daily Budget Planner — <%= monthYear %></div>

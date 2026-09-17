@@ -1,4 +1,4 @@
-<%- include('partials/budgetTabs', { monthYear, activeTab: 'daily' }) %>
+<%- include('partials/budgetTabs', { activeTab: 'daily' }) %>
 
 <div class="glass-card mb-4" id="a2hsBanner" style="display:none;">
   <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
@@ -21,31 +21,51 @@
 </div>
 
 <div class="glass-card mb-4">
-  <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-    <div class="section-title mb-0"><i class="fa-solid fa-calendar-days"></i> Daily Budget Planner — <%= monthYear %></div>
-    <form method="GET" action="/budget/daily" class="d-flex gap-2">
-      <input type="month" name="month" value="<%= monthYear %>" class="form-control" />
-      <button type="submit" class="btn btn-outline-brand"><i class="fa-solid fa-arrows-rotate me-1"></i> View</button>
-    </form>
-  </div>
+  <div class="section-title mb-0"><i class="fa-solid fa-calendar-days"></i> Daily Budget Planner</div>
+  <p style="color:var(--muted); font-size:0.85rem; margin-top:6px; margin-bottom:0;">
+    Set a daily spending amount, log what you actually spend each day, and any over- or under-spending
+    automatically carries into your running balance — spend too much today, and you'll need to rein it in
+    tomorrow to stay on track.
+  </p>
 </div>
 
-<% if (monthlyBudget === 0) { %>
+<% if (!dailyPlan) { %>
   <div class="glass-card">
     <div class="empty-state">
-      <i class="fa-solid fa-calendar-days"></i>
-      <p>No monthly budget set for <%= monthYear %> yet. Set one on the Budget Planner page first — the Daily Budget Planner uses it to work out your everyday spending allowance.</p>
-      <a href="/budget?month=<%= monthYear %>" class="btn btn-brand mt-2"><i class="fa-solid fa-piggy-bank me-1"></i> Set Monthly Budget</a>
+      <i class="fa-solid fa-calendar-day"></i>
+      <p>No daily budget set up yet. Pick an amount to spend per day — on food, fare, and other everyday costs — and start tracking.</p>
+      <form action="/budget/daily" method="POST" class="mt-2" style="max-width:320px; margin:0 auto;">
+        <div class="input-group">
+          <span class="input-group-text">৳</span>
+          <input type="number" step="0.01" min="0.01" name="dailyAmount" class="form-control" placeholder="e.g. 200" required />
+          <button type="submit" class="btn btn-brand"><i class="fa-solid fa-play me-1"></i> Start</button>
+        </div>
+      </form>
     </div>
   </div>
 <% } else { %>
+
+  <!-- Running Balance hero -->
+  <div class="glass-card mb-4" style="text-align:center; padding:32px 20px;">
+    <div class="stat-label" style="justify-content:center;">Running Balance</div>
+    <div class="stat-value" style="font-size:2.4rem; color: <%= dailyPlan.runningBalance < 0 ? 'var(--danger)' : 'var(--primary)' %>;">
+      ৳<%= dailyPlan.runningBalance.toFixed(2) %>
+    </div>
+    <p style="color:var(--muted); font-size:0.85rem; margin-bottom:0;">
+      <% if (dailyPlan.runningBalance < 0) { %>
+        You're ৳<%= Math.abs(dailyPlan.runningBalance).toFixed(2) %> over budget since <%= dailyPlan.startDate %> — spend less than usual today to catch up.
+      <% } else { %>
+        You're ৳<%= dailyPlan.runningBalance.toFixed(2) %> ahead of budget since <%= dailyPlan.startDate %>. Keep it up!
+      <% } %>
+    </p>
+  </div>
 
   <div class="row g-3 mb-4">
     <div class="col-6 col-lg-3">
       <div class="glass-card stat-card h-100">
         <div class="stat-icon icon-budget"><i class="fa-solid fa-calendar-day"></i></div>
-        <div class="stat-label"><%= dailyPlan.isCustomDailyBudget ? 'Custom' : 'Auto-Calculated' %> Daily Budget</div>
-        <div class="stat-value">৳<%= dailyPlan.dailyBudget.toFixed(2) %></div>
+        <div class="stat-label">Daily Budget</div>
+        <div class="stat-value">৳<%= dailyPlan.dailyAmount.toFixed(2) %></div>
       </div>
     </div>
     <div class="col-6 col-lg-3">
@@ -57,80 +77,58 @@
     </div>
     <div class="col-6 col-lg-3">
       <div class="glass-card stat-card h-100">
-        <div class="stat-icon icon-savings"><i class="fa-solid fa-wallet"></i></div>
-        <div class="stat-label">Remaining Today</div>
-        <div class="stat-value" style="color: <%= dailyPlan.todayEntry && dailyPlan.todayEntry.remaining < 0 ? 'var(--danger)' : 'inherit' %>;">
-          ৳<%= dailyPlan.todayEntry ? dailyPlan.todayEntry.remaining.toFixed(2) : dailyPlan.dailyBudget.toFixed(2) %>
-        </div>
+        <div class="stat-icon icon-income"><i class="fa-solid fa-calendar-week"></i></div>
+        <div class="stat-label">Days Tracked</div>
+        <div class="stat-value"><%= dailyPlan.daysTracked %></div>
       </div>
     </div>
     <div class="col-6 col-lg-3">
       <div class="glass-card stat-card h-100">
-        <div class="stat-icon icon-income"><i class="fa-solid fa-calendar-week"></i></div>
-        <div class="stat-label">Days in Month</div>
-        <div class="stat-value"><%= dailyPlan.totalDays %></div>
+        <div class="stat-icon icon-savings"><i class="fa-solid fa-chart-line"></i></div>
+        <div class="stat-label">Avg. Daily Spend</div>
+        <div class="stat-value">৳<%= dailyPlan.averageDailySpend.toFixed(2) %></div>
       </div>
     </div>
   </div>
 
   <div class="row g-3 mb-4">
-    <!-- Set / customize daily budget -->
+    <!-- Log today's spending + settings -->
     <div class="col-lg-5">
       <div class="glass-card h-100">
-        <div class="section-title"><i class="fa-solid fa-sliders"></i> Set Daily Spending Limit</div>
+        <div class="section-title"><i class="fa-solid fa-plus"></i> Log Today's Spending</div>
         <p style="color:var(--muted); font-size:0.85rem; margin-top:-10px;">
-          Set aside a fixed amount for everyday spending — food, fare/transport, and other daily costs —
-          separate from your overall monthly budget. Leave it unset and we'll split your monthly budget evenly across the month.
+          Use the manual expense entry on the Expenses page to log what you spend — it feeds straight into this
+          breakdown and your running balance.
         </p>
+        <a href="/expenses" class="btn btn-brand w-100 mb-2"><i class="fa-solid fa-arrow-right me-1"></i> Go to Add Expense</a>
 
+        <a href="/budget/daily/report/weekly" class="btn btn-outline-brand w-100 mb-4"><i class="fa-solid fa-file-arrow-down me-1"></i> Download Weekly Report (CSV)</a>
+
+        <hr style="border-color:var(--glass-border);">
+
+        <div class="section-title" style="font-size:0.95rem;"><i class="fa-solid fa-sliders"></i> Change Daily Budget</div>
         <form action="/budget/daily" method="POST" class="mb-2">
-          <input type="hidden" name="monthYear" value="<%= monthYear %>" />
-          <div class="mb-3">
-            <label class="form-label">Daily Spending Limit (৳)</label>
-            <input type="number" step="0.01" min="0.01" name="dailyBudget" class="form-control"
-              value="<%= dailyPlan.isCustomDailyBudget ? dailyPlan.dailyBudget.toFixed(2) : '' %>"
-              placeholder="Auto: ৳<%= dailyPlan.dailyBudget.toFixed(2) %> (monthly budget ÷ <%= dailyPlan.totalDays %> days)" required />
+          <div class="mb-2">
+            <input type="number" step="0.01" min="0.01" name="dailyAmount" class="form-control"
+              value="<%= dailyPlan.dailyAmount.toFixed(2) %>" required />
           </div>
-          <button type="submit" class="btn btn-brand w-100"><i class="fa-solid fa-floppy-disk me-1"></i> Save Daily Budget</button>
+          <button type="submit" class="btn btn-outline-brand w-100 btn-sm"><i class="fa-solid fa-floppy-disk me-1"></i> Save (starts a fresh period today)</button>
         </form>
-        <% if (dailyPlan.isCustomDailyBudget) { %>
-          <form action="/budget/daily/reset" method="POST">
-            <input type="hidden" name="monthYear" value="<%= monthYear %>" />
-            <button type="submit" class="btn btn-outline-brand w-100 btn-sm"><i class="fa-solid fa-rotate-left me-1"></i> Reset to Auto-Calculated</button>
-          </form>
-        <% } %>
-
-        <% if (dailyPlan.isCurrentMonth) { %>
-          <hr class="my-4" style="border-color:var(--glass-border);">
-          <div class="d-flex justify-content-between mb-2" style="font-size:0.9rem;">
-            <span style="color:var(--muted);">Adjusted Budget for Remaining <%= dailyPlan.daysRemainingInclToday %> Day(s)</span>
-            <span class="fw-semibold" style="color: <%= dailyPlan.adjustedDailyBudgetForRest < 0 ? 'var(--danger)' : 'inherit' %>;">
-              ৳<%= dailyPlan.adjustedDailyBudgetForRest.toFixed(2) %> / day
-            </span>
-          </div>
-          <div class="d-flex justify-content-between" style="font-size:0.9rem;">
-            <span style="color:var(--muted);">Projected Leftover at Month End</span>
-            <span class="fw-semibold" style="color: <%= dailyPlan.projectedEndOfMonthBalance < 0 ? 'var(--danger)' : 'var(--primary)' %>;">
-              ৳<%= dailyPlan.projectedEndOfMonthBalance.toFixed(2) %>
-            </span>
-          </div>
-          <p style="color:var(--muted); font-size:0.78rem; margin-top:6px; margin-bottom:0;">
-            If you keep spending ৳<%= dailyPlan.dailyBudget.toFixed(2) %>/day for the rest of <%= monthYear %>,
-            this is how much you'll have kept aside for daily expenses by month end.
-          </p>
-        <% } %>
+        <form action="/budget/daily/reset" method="POST" class="confirm-delete" data-label="your daily budget plan — this clears your running balance and history">
+          <button type="submit" class="btn btn-link w-100 btn-sm text-danger"><i class="fa-solid fa-rotate-left me-1"></i> Reset Plan</button>
+        </form>
       </div>
     </div>
 
-    <!-- Today's progress + day-by-day breakdown -->
+    <!-- Daily breakdown log -->
     <div class="col-lg-7">
       <div class="glass-card h-100">
         <div class="section-title"><i class="fa-solid fa-table-list"></i> Daily Breakdown</div>
 
         <% if (dailyPlan.todayEntry) { %>
-          <% const todayPct = dailyPlan.dailyBudget > 0 ? Math.min(100, (dailyPlan.todayEntry.spent / dailyPlan.dailyBudget) * 100) : 0; %>
+          <% const todayPct = dailyPlan.dailyAmount > 0 ? Math.min(100, (dailyPlan.todayEntry.spent / dailyPlan.dailyAmount) * 100) : 0; %>
           <div class="d-flex justify-content-between mb-2" style="font-size:0.9rem; color:var(--muted);">
-            <span>Today's Spending vs. Daily Allowance</span>
+            <span>Today's Spending vs. Daily Budget</span>
             <span><%= todayPct.toFixed(1) %>% used</span>
           </div>
           <div class="progress-modern mb-4">
@@ -140,23 +138,17 @@
 
         <div class="table-responsive" style="max-height:400px; overflow-y:auto;">
           <table class="table table-modern mb-0">
-            <thead><tr><th>Date</th><th class="text-end">Daily Allowance</th><th class="text-end">Spent</th><th class="text-end">Remaining</th><th class="text-end">Status</th></tr></thead>
+            <thead><tr><th>Date</th><th class="text-end">Budget</th><th class="text-end">Spent</th><th class="text-end">Difference</th><th class="text-end">Balance</th></tr></thead>
             <tbody>
               <% dailyPlan.days.forEach(d => { %>
                 <tr style="<%= d.isToday ? 'background:var(--mint-soft);' : '' %>">
                   <td class="fw-semibold"><%= d.date %><% if (d.isToday) { %> <span class="chip-filter" style="padding:2px 10px; font-size:0.7rem;">Today</span><% } %></td>
-                  <td class="text-end amount">৳<%= dailyPlan.dailyBudget.toFixed(2) %></td>
+                  <td class="text-end amount">৳<%= dailyPlan.dailyAmount.toFixed(2) %></td>
                   <td class="text-end amount"><%= d.spent > 0 ? '৳' + d.spent.toFixed(2) : '—' %></td>
-                  <td class="text-end amount" style="color: <%= d.remaining < 0 ? 'var(--danger)' : 'inherit' %>;">৳<%= d.remaining.toFixed(2) %></td>
-                  <td class="text-end">
-                    <% if (d.isFuture) { %>
-                      <span class="badge-category">Upcoming</span>
-                    <% } else if (d.overBudget) { %>
-                      <span class="badge-category" style="background:rgba(229,72,77,0.14); color:var(--danger);">Over Budget</span>
-                    <% } else { %>
-                      <span class="badge-category" style="background:rgba(15,122,77,0.12); color:var(--primary);">Within Budget</span>
-                    <% } %>
+                  <td class="text-end amount" style="color: <%= d.difference < 0 ? 'var(--danger)' : 'var(--primary)' %>;">
+                    <%= d.difference >= 0 ? '+' : '' %>৳<%= d.difference.toFixed(2) %>
                   </td>
+                  <td class="text-end amount fw-semibold" style="color: <%= d.runningBalance < 0 ? 'var(--danger)' : 'inherit' %>;">৳<%= d.runningBalance.toFixed(2) %></td>
                 </tr>
               <% }) %>
             </tbody>
@@ -197,7 +189,7 @@
         <div class="stat-label">Total Fixed Daily Cost</div>
         <div class="stat-value" style="font-size:1.1rem;">৳<%= fixedDailyTotal.toFixed(2) %></div>
       </div>
-      <% if (monthlyBudget > 0) { %>
+      <% if (flexibleDailyBudget !== null) { %>
         <div class="col-6 col-md-4">
           <div class="stat-label">Flexible Budget Left Today</div>
           <div class="stat-value" style="font-size:1.1rem; color: <%= flexibleDailyBudget < 0 ? 'var(--danger)' : 'inherit' %>;">

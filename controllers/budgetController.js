@@ -20,6 +20,7 @@ const IncomeModel = require('../models/incomeModel');
 const ExpenseModel = require('../models/expenseModel');
 const CategoryBudgetModel = require('../models/categoryBudgetModel');
 const RecurringExpenseModel = require('../models/recurringExpenseModel');
+const DailyBudgetPlanModel = require('../models/dailyBudgetPlanModel');
 
 const CATEGORIES = ['Food', 'Transport', 'Education', 'Entertainment', 'Shopping', 'Medical', 'Others'];
 
@@ -33,95 +34,84 @@ function currentDateStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
-/** Number of calendar days in a "YYYY-MM" month string. */
-function daysInMonth(monthYear) {
-  const [year, month] = monthYear.split('-').map(Number);
-  return new Date(year, month, 0).getDate();
+/** Parse a "YYYY-MM-DD" string as a UTC date, so day-math never shifts with local timezones. */
+function toUTCDate(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+}
+
+function addDaysStr(dateStr, n) {
+  const dt = toUTCDate(dateStr);
+  dt.setUTCDate(dt.getUTCDate() + n);
+  return dt.toISOString().slice(0, 10);
+}
+
+function daysBetweenInclusive(startDate, endDate) {
+  return Math.round((toUTCDate(endDate) - toUTCDate(startDate)) / 86400000) + 1;
 }
 
 /**
- * Fetch the budget row for a month and normalize it into the three
- * fields we track, defaulting anything unset to null/0. Used so every
- * write action can preserve fields it isn't explicitly changing
- * instead of accidentally wiping them via the upsert.
+ * Build the rollover Daily Budget breakdown from a student's ongoing
+ * plan (a fixed daily amount, tracked since start_date — not tied to
+ * a calendar month). The core idea, matching how everyday budgeting
+ * apps handle this: a single cumulative running balance —
+ *   runningBalance = dailyAmount * daysElapsed - totalSpentSinceStart
+ * — which naturally rolls overspending into tomorrow's balance (and
+ * carries forward any underspending too), rather than resetting each
+ * day in isolation.
  */
-async function getExistingBudgetFields(userId, monthYear) {
-  const existing = await BudgetModel.findByMonth(userId, monthYear);
-  return {
-    exists: !!existing,
-    monthlyBudget: existing ? parseFloat(existing.monthly_budget) : 0,
-    dailyBudget: existing && existing.daily_budget !== null ? parseFloat(existing.daily_budget) : null,
-    savingsGoal: existing && existing.savings_goal !== null ? parseFloat(existing.savings_goal) : null
-  };
-}
-
-/**
- * Build the day-by-day Daily Budget Planner breakdown for a month.
- * Tracks everyday spending (food, fare/transport, and other recurring
- * costs) against a daily allowance — either a custom amount the
- * student set, or one automatically split evenly from the monthly
- * budget — and projects how much will be left for daily expenses by
- * the end of the month.
- */
-function buildDailyPlan(monthYear, monthlyBudget, customDailyBudget, spentAmount, dailyExpenseRows) {
-  const totalDays = daysInMonth(monthYear);
-  const derivedDailyBudget = monthlyBudget > 0 ? monthlyBudget / totalDays : 0;
-  const isCustomDailyBudget = customDailyBudget !== null && customDailyBudget > 0;
-  const dailyBudget = isCustomDailyBudget ? customDailyBudget : derivedDailyBudget;
-
-  const today = currentDateStr();
-  const isCurrentMonth = monthYear === currentMonthYear();
-  const todayDay = isCurrentMonth ? Number(today.slice(8, 10)) : null;
-
+function buildRolloverPlan(dailyAmount, startDate, dailyExpenseRows, today) {
   const spentByDay = {};
   dailyExpenseRows.forEach((r) => {
     spentByDay[r.day] = parseFloat(r.total);
   });
 
   const days = [];
-  for (let d = 1; d <= totalDays; d++) {
-    const date = `${monthYear}-${String(d).padStart(2, '0')}`;
+  let cumulativeBalance = 0;
+  const totalDays = daysBetweenInclusive(startDate, today);
+
+  for (let i = 0; i < totalDays; i++) {
+    const date = addDaysStr(startDate, i);
     const spent = spentByDay[date] || 0;
+    cumulativeBalance += dailyAmount - spent;
     days.push({
       date,
-      day: d,
       spent,
-      remaining: dailyBudget - spent,
+      difference: dailyAmount - spent,
+      runningBalance: cumulativeBalance,
       isToday: date === today,
-      isFuture: date > today,
-      overBudget: dailyBudget > 0 && spent > dailyBudget
+      overBudget: spent > dailyAmount
     });
   }
 
+  const totalSpent = days.reduce((sum, d) => sum + d.spent, 0);
   const todayEntry = days.find((d) => d.isToday) || null;
-
-  // How much is left to spend for the rest of this month (from today
-  // onward), and what that works out to per remaining day.
-  let daysRemainingInclToday = null;
-  let adjustedDailyBudgetForRest = null;
-  let projectedEndOfMonthBalance = null;
-
-  if (isCurrentMonth && monthlyBudget > 0) {
-    daysRemainingInclToday = totalDays - todayDay + 1;
-    const moneyLeftThisMonth = monthlyBudget - spentAmount;
-    adjustedDailyBudgetForRest = daysRemainingInclToday > 0
-      ? moneyLeftThisMonth / daysRemainingInclToday
-      : moneyLeftThisMonth;
-
-    const futureDaysCount = days.filter((d) => d.isFuture).length;
-    projectedEndOfMonthBalance = moneyLeftThisMonth - (dailyBudget * futureDaysCount);
-  }
+  const averageDailySpend = days.length > 0 ? totalSpent / days.length : 0;
 
   return {
-    dailyBudget,
-    isCustomDailyBudget,
-    totalDays,
-    days,
+    dailyAmount,
+    startDate,
+    daysTracked: days.length,
+    totalSpent,
+    averageDailySpend,
+    runningBalance: cumulativeBalance,
     todayEntry,
-    isCurrentMonth,
-    daysRemainingInclToday,
-    adjustedDailyBudgetForRest,
-    projectedEndOfMonthBalance
+    days: [...days].reverse() // most recent first for the log table
+  };
+}
+
+/**
+ * Fetch the budget row for a month and normalize it into the fields
+ * we track, defaulting anything unset to null/0. Used so a write
+ * action can preserve fields it isn't explicitly changing instead of
+ * accidentally wiping them via the upsert.
+ */
+async function getExistingBudgetFields(userId, monthYear) {
+  const existing = await BudgetModel.findByMonth(userId, monthYear);
+  return {
+    exists: !!existing,
+    monthlyBudget: existing ? parseFloat(existing.monthly_budget) : 0,
+    savingsGoal: existing && existing.savings_goal !== null ? parseFloat(existing.savings_goal) : null
   };
 }
 
@@ -168,19 +158,19 @@ const budgetController = {
     const monthYear = req.query.month || currentMonthYear();
 
     try {
-      const [budgetRow, totalExpense, dailyExpenseRows, recurringExpenses] = await Promise.all([
-        BudgetModel.findByMonth(userId, monthYear),
-        ExpenseModel.getTotal(userId, monthYear),
-        ExpenseModel.getDailyTotals(userId, monthYear),
+      const today = currentDateStr();
+      const [plan, recurringExpenses] = await Promise.all([
+        DailyBudgetPlanModel.findByUser(userId),
         RecurringExpenseModel.findAllByUser(userId)
       ]);
 
-      const monthlyBudget = budgetRow ? parseFloat(budgetRow.monthly_budget) : 0;
-      const customDailyBudget = budgetRow && budgetRow.daily_budget !== null ? parseFloat(budgetRow.daily_budget) : null;
-      const spentAmount = totalExpense;
-      const dailyPlan = buildDailyPlan(monthYear, monthlyBudget, customDailyBudget, spentAmount, dailyExpenseRows);
+      let dailyPlan = null;
+      if (plan) {
+        const dailyAmount = parseFloat(plan.daily_amount);
+        const dailyExpenseRows = await ExpenseModel.getDailyTotalsInRange(userId, plan.start_date, today);
+        dailyPlan = buildRolloverPlan(dailyAmount, plan.start_date, dailyExpenseRows, today);
+      }
 
-      const today = currentDateStr();
       const fixedExpenses = recurringExpenses.map((r) => ({
         id: r.recurring_expense_id,
         label: r.label,
@@ -189,12 +179,10 @@ const budgetController = {
         loggedToday: r.last_logged_date === today
       }));
       const fixedDailyTotal = fixedExpenses.reduce((sum, r) => sum + r.amount, 0);
-      const flexibleDailyBudget = dailyPlan.dailyBudget - fixedDailyTotal;
+      const flexibleDailyBudget = dailyPlan ? dailyPlan.dailyAmount - fixedDailyTotal : null;
 
       res.render('daily-budget', {
         title: 'Daily Budget Planner',
-        monthYear,
-        monthlyBudget,
         dailyPlan,
         fixedExpenses,
         fixedDailyTotal,
@@ -204,7 +192,7 @@ const budgetController = {
     } catch (err) {
       console.error('Daily budget index error:', err);
       req.flash('error', 'Unable to load daily budget data.');
-      res.redirect('/budget');
+      res.redirect('/dashboard');
     }
   },
 
@@ -213,32 +201,28 @@ const budgetController = {
     const monthYear = req.query.month || currentMonthYear();
 
     try {
-      const [budgetRow, totalIncome, totalExpense, history, dailyExpenseRows, categoryBudgetRows, categoryTotals] = await Promise.all([
+      const [budgetRow, totalIncome, totalExpense, history, categoryBudgetRows, categoryTotals] = await Promise.all([
         BudgetModel.findByMonth(userId, monthYear),
         IncomeModel.getTotal(userId, monthYear),
         ExpenseModel.getTotal(userId, monthYear),
         BudgetModel.findAllByUser(userId),
-        ExpenseModel.getDailyTotals(userId, monthYear),
         CategoryBudgetModel.findAllByMonth(userId, monthYear),
         ExpenseModel.getTotalsByCategory(userId, monthYear)
       ]);
 
       const monthlyBudget = budgetRow ? parseFloat(budgetRow.monthly_budget) : 0;
-      const customDailyBudget = budgetRow && budgetRow.daily_budget !== null ? parseFloat(budgetRow.daily_budget) : null;
       const savingsGoal = budgetRow && budgetRow.savings_goal !== null ? parseFloat(budgetRow.savings_goal) : null;
       const spentAmount = totalExpense;
       const remainingBudget = monthlyBudget - spentAmount;
       const savings = totalIncome - totalExpense;
       const budgetPercentage = monthlyBudget > 0 ? Math.min(200, (spentAmount / monthlyBudget) * 100) : 0;
       const savingsGoalPct = savingsGoal && savingsGoal > 0 ? Math.min(150, (savings / savingsGoal) * 100) : null;
-      const dailyPlan = buildDailyPlan(monthYear, monthlyBudget, customDailyBudget, spentAmount, dailyExpenseRows);
       const categoryBudgets = buildCategoryBudgets(categoryBudgetRows, categoryTotals);
 
       res.render('budget', {
         title: 'Monthly Budget Planner',
         monthYear,
         monthlyBudget,
-        customDailyBudget,
         savingsGoal,
         savingsGoalPct,
         totalIncome,
@@ -247,7 +231,6 @@ const budgetController = {
         savings,
         budgetPercentage: budgetPercentage.toFixed(1),
         history,
-        dailyPlan,
         categories: CATEGORIES,
         categoryBudgets
       });
@@ -268,10 +251,10 @@ const budgetController = {
     }
 
     try {
-      // Preserve any existing daily budget / savings goal for this
-      // month — this form only ever changes the overall monthly cap.
+      // Preserve any existing savings goal for this month — this form
+      // only ever changes the overall monthly cap.
       const existing = await getExistingBudgetFields(userId, monthYear);
-      await BudgetModel.upsert(userId, monthYear, parseFloat(monthlyBudget), existing.dailyBudget, existing.savingsGoal);
+      await BudgetModel.upsert(userId, monthYear, parseFloat(monthlyBudget), existing.savingsGoal);
       req.flash('success', `Budget for ${monthYear} saved successfully.`);
       res.redirect(`/budget?month=${monthYear}`);
     } catch (err) {
@@ -281,47 +264,87 @@ const budgetController = {
     }
   },
 
-  async saveDailyBudget(req, res) {
+  /** Set (or change) the ongoing daily spending plan. Changing the amount always starts a fresh rollover period from today. */
+  async saveDailyBudgetPlan(req, res) {
     const userId = req.session.userId;
-    const { monthYear, dailyBudget } = req.body;
+    const { dailyAmount } = req.body;
 
-    if (!monthYear || !dailyBudget || parseFloat(dailyBudget) <= 0) {
+    if (!dailyAmount || parseFloat(dailyAmount) <= 0) {
       req.flash('error', 'Please provide a valid daily spending amount.');
-      return res.redirect('/budget');
+      return res.redirect('/budget/daily');
     }
 
     try {
-      const existing = await getExistingBudgetFields(userId, monthYear);
-
-      if (!existing.exists) {
-        req.flash('error', 'Set a monthly budget for this month before customizing your daily budget.');
-        return res.redirect(`/budget/daily?month=${monthYear}`);
-      }
-
-      await BudgetModel.upsert(userId, monthYear, existing.monthlyBudget, parseFloat(dailyBudget), existing.savingsGoal);
-      req.flash('success', `Daily budget for ${monthYear} saved successfully.`);
-      res.redirect(`/budget/daily?month=${monthYear}`);
+      await DailyBudgetPlanModel.upsert(userId, parseFloat(dailyAmount), currentDateStr());
+      req.flash('success', `Your daily budget is now ৳${parseFloat(dailyAmount).toFixed(2)}/day, starting today.`);
+      res.redirect('/budget/daily');
     } catch (err) {
-      console.error('Daily budget save error:', err);
-      req.flash('error', 'Failed to save daily budget.');
+      console.error('Daily budget plan save error:', err);
+      req.flash('error', 'Failed to save your daily budget.');
       res.redirect('/budget/daily');
     }
   },
 
-  async resetDailyBudget(req, res) {
+  /** Clear the daily budget plan entirely so the student can start over from scratch. */
+  async resetDailyBudgetPlan(req, res) {
     const userId = req.session.userId;
-    const { monthYear } = req.body;
 
     try {
-      const existing = await getExistingBudgetFields(userId, monthYear);
-      if (existing.exists) {
-        await BudgetModel.upsert(userId, monthYear, existing.monthlyBudget, null, existing.savingsGoal);
-        req.flash('success', 'Daily budget reset to the auto-calculated amount.');
-      }
-      res.redirect(`/budget/daily?month=${monthYear}`);
+      await DailyBudgetPlanModel.delete(userId);
+      req.flash('success', 'Daily budget plan reset. Set a new one whenever you\'re ready.');
+      res.redirect('/budget/daily');
     } catch (err) {
-      console.error('Daily budget reset error:', err);
-      req.flash('error', 'Failed to reset daily budget.');
+      console.error('Daily budget plan reset error:', err);
+      req.flash('error', 'Failed to reset your daily budget plan.');
+      res.redirect('/budget/daily');
+    }
+  },
+
+  /** CSV download of the last 7 days (rolling window including today) — date, budget, spent, difference, running balance. */
+  async downloadWeeklyReport(req, res) {
+    const userId = req.session.userId;
+
+    try {
+      const plan = await DailyBudgetPlanModel.findByUser(userId);
+      if (!plan) {
+        req.flash('error', 'Set up a daily budget plan first to download a weekly report.');
+        return res.redirect('/budget/daily');
+      }
+
+      const dailyAmount = parseFloat(plan.daily_amount);
+      const today = currentDateStr();
+      let windowStart = addDaysStr(today, -6);
+      if (windowStart < plan.start_date) windowStart = plan.start_date;
+
+      let carriedBalance = 0;
+      if (windowStart > plan.start_date) {
+        const dayBeforeWindow = addDaysStr(windowStart, -1);
+        const priorSpent = await ExpenseModel.getTotalInRange(userId, plan.start_date, dayBeforeWindow);
+        const priorDays = daysBetweenInclusive(plan.start_date, dayBeforeWindow);
+        carriedBalance = dailyAmount * priorDays - priorSpent;
+      }
+
+      const dailyExpenseRows = await ExpenseModel.getDailyTotalsInRange(userId, windowStart, today);
+      const spentByDay = {};
+      dailyExpenseRows.forEach((r) => { spentByDay[r.day] = parseFloat(r.total); });
+
+      const rows = [['Date', 'Daily Budget', 'Spent', 'Difference', 'Running Balance']];
+      const windowDays = daysBetweenInclusive(windowStart, today);
+      for (let i = 0; i < windowDays; i++) {
+        const date = addDaysStr(windowStart, i);
+        const spent = spentByDay[date] || 0;
+        const difference = dailyAmount - spent;
+        carriedBalance += difference;
+        rows.push([date, dailyAmount.toFixed(2), spent.toFixed(2), difference.toFixed(2), carriedBalance.toFixed(2)]);
+      }
+
+      const csv = rows.map((row) => row.join(',')).join('\n');
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="daily-budget-weekly-report-${today}.csv"`);
+      res.send(csv);
+    } catch (err) {
+      console.error('Weekly report download error:', err);
+      req.flash('error', 'Failed to generate the weekly report.');
       res.redirect('/budget/daily');
     }
   },

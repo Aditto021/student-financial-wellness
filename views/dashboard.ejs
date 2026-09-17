@@ -103,10 +103,11 @@
   <div class="col-lg-6">
     <div class="glass-card h-100">
       <div class="section-title"><i class="fa-solid fa-calendar-days"></i> Today's Spending</div>
-      <% if (monthlyBudget === 0) { %>
+      <% if (!hasDailyBudgetPlan) { %>
         <div class="empty-state" style="padding:24px 20px;">
           <i class="fa-solid fa-calendar-days"></i>
-          <p>Set a monthly budget to see your daily spending allowance.</p>
+          <p>Set up a daily budget to track everyday spending — food, fare and more.</p>
+          <a href="/budget/daily" class="btn btn-brand mt-2"><i class="fa-solid fa-calendar-day me-1"></i> Set Daily Budget</a>
         </div>
       <% } else { %>
         <div class="row g-3 mb-3">
@@ -119,7 +120,7 @@
             <div class="stat-value" style="font-size:1.1rem;">৳<%= todaySpent.toFixed(2) %></div>
           </div>
           <div class="col-4">
-            <div class="stat-label">Left Today</div>
+            <div class="stat-label">Running Balance</div>
             <div class="stat-value" style="font-size:1.1rem; color: <%= dailyRemaining < 0 ? 'var(--danger)' : 'var(--primary)' %>;">
               ৳<%= dailyRemaining.toFixed(2) %>
             </div>
@@ -127,7 +128,7 @@
         </div>
         <% const todayPct = dailyBudget > 0 ? Math.min(100, (todaySpent / dailyBudget) * 100) : 0; %>
         <div class="progress-modern mb-3">
-          <div class="progress-bar-fill <%= dailyRemaining < 0 ? 'over-limit' : '' %>" style="width: <%= todayPct %>%;"></div>
+          <div class="progress-bar-fill <%= todaySpent > dailyBudget ? 'over-limit' : '' %>" style="width: <%= todayPct %>%;"></div>
         </div>
         <a href="/budget/daily" style="color:var(--primary); font-weight:600; font-size:0.85rem;">
           View full daily breakdown <i class="fa-solid fa-arrow-right ms-1"></i>

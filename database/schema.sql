@@ -62,12 +62,29 @@ CREATE TABLE budget (
     user_id INT NOT NULL,
     month_year CHAR(7) NOT NULL COMMENT 'Format: YYYY-MM',
     monthly_budget DECIMAL(12,2) NOT NULL,
-    daily_budget DECIMAL(12,2) DEFAULT NULL COMMENT 'Optional custom daily spending allowance; auto-derived from monthly_budget when NULL',
     savings_goal DECIMAL(12,2) DEFAULT NULL COMMENT 'Optional target amount the student wants to save this month',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_budget_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     UNIQUE KEY uq_user_month (user_id, month_year)
+) ENGINE=InnoDB;
+
+-- ------------------------------------------------------------------
+-- Table: daily_budget_plan
+-- A single ongoing daily spending plan per student — NOT tied to a
+-- calendar month. Overspending on one day rolls into the next day's
+-- balance (and underspending carries forward too), the way everyday
+-- budgeting apps like "Daily Budget Original" work: the number that
+-- matters is the cumulative running balance since start_date, not an
+-- isolated per-day comparison.
+-- ------------------------------------------------------------------
+CREATE TABLE daily_budget_plan (
+    user_id INT PRIMARY KEY,
+    daily_amount DECIMAL(12,2) NOT NULL,
+    start_date DATE NOT NULL COMMENT 'Resets to today whenever the student changes the daily amount, starting a fresh rollover period',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_daily_budget_plan_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ------------------------------------------------------------------

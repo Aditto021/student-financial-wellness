@@ -23,6 +23,7 @@ const BudgetModel = require('../models/budgetModel');
 const RecommendationModel = require('../models/recommendationModel');
 const CategoryBudgetModel = require('../models/categoryBudgetModel');
 const AiInsightModel = require('../models/aiInsightModel');
+const DailyBudgetPlanModel = require('../models/dailyBudgetPlanModel');
 const aiEngine = require('../services/aiEngine');
 const aiInsightsService = require('../services/aiInsightsService');
 
@@ -33,6 +34,10 @@ function currentMonthYear() {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   return `${now.getFullYear()}-${month}`;
+}
+
+function currentDateStr() {
+  return new Date().toISOString().slice(0, 10);
 }
 
 /** "3 hours ago" / "just now" style label for the AI insights timestamp. */
@@ -96,18 +101,18 @@ const dashboardController = {
       const userId = req.session.userId;
       const monthYear = currentMonthYear();
 
-      const [totalIncome, totalExpense, categoryTotals, budgetRow, incomeTrend, expenseTrend, dailyExpenseRows, allTimeIncome, allTimeExpense, categoryBudgetRows, cachedInsight] = await Promise.all([
+      const [totalIncome, totalExpense, categoryTotals, budgetRow, incomeTrend, expenseTrend, allTimeIncome, allTimeExpense, categoryBudgetRows, cachedInsight, dailyPlanRow] = await Promise.all([
         IncomeModel.getTotal(userId, monthYear),
         ExpenseModel.getTotal(userId, monthYear),
         ExpenseModel.getTotalsByCategory(userId, monthYear),
         BudgetModel.findByMonth(userId, monthYear),
         IncomeModel.getMonthlyTotals(userId, 6),
         ExpenseModel.getMonthlyTotals(userId, 6),
-        ExpenseModel.getDailyTotals(userId, monthYear),
         IncomeModel.getTotal(userId),
         ExpenseModel.getTotal(userId),
         CategoryBudgetModel.findAllByMonth(userId, monthYear),
-        AiInsightModel.findByUser(userId)
+        AiInsightModel.findByUser(userId),
+        DailyBudgetPlanModel.findByUser(userId)
       ]);
 
       const monthlyBudget = budgetRow ? parseFloat(budgetRow.monthly_budget) : 0;
@@ -120,17 +125,29 @@ const dashboardController = {
       // actually have saved up in total," not just this month.
       const totalBalance = allTimeIncome - allTimeExpense;
 
-      // Daily Budget snapshot: today's spend against the daily allowance
-      // (custom if the student set one, otherwise the monthly budget
-      // split evenly across the days of the month).
-      const now = new Date();
-      const today = now.toISOString().slice(0, 10);
-      const daysInThisMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-      const customDailyBudget = budgetRow && budgetRow.daily_budget !== null ? parseFloat(budgetRow.daily_budget) : null;
-      const dailyBudget = customDailyBudget !== null ? customDailyBudget : (monthlyBudget > 0 ? monthlyBudget / daysInThisMonth : 0);
-      const todayRow = dailyExpenseRows.find((r) => r.day === today);
-      const todaySpent = todayRow ? parseFloat(todayRow.total) : 0;
-      const dailyRemaining = dailyBudget - todaySpent;
+      // Daily Budget snapshot: pulled from the same ongoing rollover
+      // plan (models/dailyBudgetPlanModel.js) the Daily Budget Planner
+      // page uses, so the two never show conflicting numbers. Only
+      // today's own spend and the plan's cumulative running balance
+      // are needed here — the full day-by-day breakdown lives on the
+      // dedicated page.
+      const today = currentDateStr();
+      let dailyBudget = 0;
+      let todaySpent = 0;
+      let dailyRemaining = 0;
+      let hasDailyBudgetPlan = false;
+
+      if (dailyPlanRow) {
+        hasDailyBudgetPlan = true;
+        dailyBudget = parseFloat(dailyPlanRow.daily_amount);
+        const dailyExpenseRows = await ExpenseModel.getDailyTotalsInRange(userId, today, today);
+        const todayRow = dailyExpenseRows.find((r) => r.day === today);
+        todaySpent = todayRow ? parseFloat(todayRow.total) : 0;
+
+        const spentSinceStart = await ExpenseModel.getTotalInRange(userId, dailyPlanRow.start_date, today);
+        const daysElapsed = Math.round((new Date(today) - new Date(dailyPlanRow.start_date)) / 86400000) + 1;
+        dailyRemaining = dailyBudget * daysElapsed - spentSinceStart;
+      }
 
       // Savings goal progress, if the student set one for this month.
       const savingsGoal = budgetRow && budgetRow.savings_goal !== null ? parseFloat(budgetRow.savings_goal) : null;
@@ -223,6 +240,7 @@ const dashboardController = {
         dailyBudget,
         todaySpent,
         dailyRemaining,
+        hasDailyBudgetPlan,
         savingsGoal,
         savingsGoalPct,
         healthScore,
@@ -251,6 +269,7 @@ const dashboardController = {
         dailyBudget: 0,
         todaySpent: 0,
         dailyRemaining: 0,
+        hasDailyBudgetPlan: false,
         savingsGoal: null,
         savingsGoalPct: null,
         healthScore: 0,

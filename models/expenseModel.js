@@ -89,7 +89,7 @@ const ExpenseModel = {
     return rows;
   },
 
-  /** Per-day totals within a given month (YYYY-MM) — powers the Daily Budget Planner. */
+  /** Per-day totals within a given month (YYYY-MM) — powers the Monthly Budget Planner. */
   async getDailyTotals(userId, monthYear) {
     const [rows] = await pool.query(
       `SELECT DATE_FORMAT(expense_date, '%Y-%m-%d') AS day, SUM(amount) AS total
@@ -100,6 +100,29 @@ const ExpenseModel = {
       [userId, monthYear]
     );
     return rows;
+  },
+
+  /** Per-day totals across an arbitrary date range — powers the rollover Daily Budget Planner. */
+  async getDailyTotalsInRange(userId, startDate, endDate) {
+    const [rows] = await pool.query(
+      `SELECT DATE_FORMAT(expense_date, '%Y-%m-%d') AS day, SUM(amount) AS total
+       FROM expense
+       WHERE user_id = ? AND expense_date >= ? AND expense_date <= ?
+       GROUP BY day
+       ORDER BY day ASC`,
+      [userId, startDate, endDate]
+    );
+    return rows;
+  },
+
+  /** Total spent across an arbitrary date range (inclusive). */
+  async getTotalInRange(userId, startDate, endDate) {
+    const [rows] = await pool.query(
+      `SELECT COALESCE(SUM(amount), 0) AS total FROM expense
+       WHERE user_id = ? AND expense_date >= ? AND expense_date <= ?`,
+      [userId, startDate, endDate]
+    );
+    return parseFloat(rows[0].total);
   },
 
   /** Monthly totals for the last N months (for trend charts). */

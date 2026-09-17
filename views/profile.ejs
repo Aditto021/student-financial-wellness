@@ -1,20 +1,27 @@
 <div class="row g-3">
   <div class="col-lg-4">
     <div class="glass-card text-center">
-      <% if (profileUser.profile_picture) { %>
-        <img src="/uploads/profile/<%= profileUser.profile_picture %>" class="rounded-circle mb-3" style="width:120px; height:120px; object-fit:cover; border:3px solid var(--mint);" />
-      <% } else { %>
-        <div class="rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width:120px; height:120px; background:var(--mint-soft); color:var(--primary); font-size:2.4rem; font-weight:700;">
-          <%= profileUser.full_name.charAt(0).toUpperCase() %>
-        </div>
-      <% } %>
-      <h5 class="mb-1"><%= profileUser.full_name %></h5>
-      <p style="color:var(--muted);" class="mb-3"><%= profileUser.email %></p>
+      <div class="avatar-upload-wrap mx-auto mb-3" id="avatarPreview" data-user-initial="<%= profileUser.full_name.charAt(0).toUpperCase() %>" title="Click to change photo">
+        <% if (profileUser.profile_picture) { %>
+          <img src="<%= profileUser.profile_picture %>" id="avatarImg" alt="Profile" />
+        <% } else { %>
+          <div class="avatar-initials" id="avatarInitials"><%= profileUser.full_name.charAt(0).toUpperCase() %></div>
+        <% } %>
+        <div class="avatar-overlay"><i class="fa-solid fa-camera"></i></div>
+        <div class="avatar-spinner d-none" id="avatarSpinner"><i class="fa-solid fa-spinner fa-spin"></i></div>
+      </div>
+      <input type="file" id="profilePictureInput" name="profilePicture" accept="image/png,image/jpeg,image/gif,image/webp" hidden />
 
-      <form action="/profile/upload-picture" method="POST" enctype="multipart/form-data">
-        <input type="file" name="profilePicture" class="form-control mb-2" accept="image/*" required />
-        <button type="submit" class="btn btn-outline-brand w-100"><i class="fa-solid fa-upload me-1"></i> Upload Photo</button>
-      </form>
+      <h5 class="mb-1"><%= profileUser.full_name %></h5>
+      <p style="color:var(--muted);" class="mb-2"><%= profileUser.email %></p>
+
+      <div id="avatarError" class="text-danger small mb-2" style="display:none;"></div>
+
+      <p style="color:var(--muted); font-size:0.8rem;" class="mb-2">Click your photo to change it — JPG, PNG, GIF or WEBP, up to 2MB.</p>
+
+      <% if (profileUser.profile_picture) { %>
+        <button type="button" id="removePictureBtn" class="btn btn-link btn-sm text-danger p-0"><i class="fa-solid fa-trash me-1"></i>Remove Photo</button>
+      <% } %>
     </div>
   </div>
 

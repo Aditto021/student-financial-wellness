@@ -2,28 +2,23 @@
  * middleware/upload.js
  * -----------------------------------------------------------------
  * Multer configuration for handling profile picture uploads.
- * Files are stored on disk under /uploads/profile with a unique,
- * collision-safe filename. Only image files are accepted, and a
- * 2MB size limit is enforced.
+ *
+ * Files are kept in memory (never written to local disk) and the
+ * controller encodes them straight into the database as a base64
+ * data URI. This matters specifically because the app runs on hosts
+ * with an ephemeral filesystem (e.g. Render) — anything written to
+ * disk is wiped on every redeploy/restart, silently breaking any
+ * previously uploaded picture. Storing the bytes in the database
+ * keeps them exactly as durable as the rest of the app's data.
+ *
+ * Only image files are accepted, and a 2MB size limit is enforced.
  * -----------------------------------------------------------------
  */
 
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 
-const uploadDir = path.join(__dirname, '..', 'uploads', 'profile');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const uniqueSuffix = `${req.session.userId}_${Date.now()}${path.extname(file.originalname)}`;
-    cb(null, uniqueSuffix);
-  }
-});
+const storage = multer.memoryStorage();
 
 function fileFilter(req, file, cb) {
   const allowed = /jpeg|jpg|png|gif|webp/;

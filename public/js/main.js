@@ -3,7 +3,8 @@
  * -----------------------------------------------------------------
  * Shared client-side behavior: mobile sidebar toggle, dark mode
  * switching (persisted to the DB via /profile/dark-mode), delete
- * confirmations, and auto-dismissing flash alerts.
+ * confirmations, auto-dismissing flash alerts, and profile picture
+ * upload/removal (instant preview, no page reload).
  * -----------------------------------------------------------------
  */
 
@@ -74,6 +75,152 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => alertEl.remove(), 300);
     }, 5000);
   });
+
+  // ---------------------------------------------------------------
+  // Profile picture: click avatar to change, instant local preview,
+  // AJAX upload (no page reload), and a remove option. Keeps the
+  // topbar avatar in sync with the one on the profile page.
+  // ---------------------------------------------------------------
+  const avatarPreview = document.getElementById('avatarPreview');
+  const avatarInput = document.getElementById('profilePictureInput');
+  const avatarSpinner = document.getElementById('avatarSpinner');
+  const avatarError = document.getElementById('avatarError');
+  const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+
+  function showAvatarError(message) {
+    if (!avatarError) return;
+    avatarError.textContent = message;
+    avatarError.style.display = 'block';
+  }
+
+  function clearAvatarError() {
+    if (!avatarError) return;
+    avatarError.style.display = 'none';
+  }
+
+  function setAvatarImage(src) {
+    if (avatarPreview) {
+      avatarPreview.querySelectorAll('img, .avatar-initials').forEach((el) => el.remove());
+      const img = document.createElement('img');
+      img.id = 'avatarImg';
+      img.alt = 'Profile';
+      img.src = src;
+      avatarPreview.prepend(img);
+    }
+
+    const topImg = document.getElementById('topbarAvatarImg');
+    const topInitials = document.getElementById('topbarAvatarInitials');
+    if (topImg) {
+      topImg.src = src;
+    } else if (topInitials) {
+      const img = document.createElement('img');
+      img.id = 'topbarAvatarImg';
+      img.className = 'avatar-circle';
+      img.alt = 'Profile';
+      img.src = src;
+      topInitials.replaceWith(img);
+    }
+  }
+
+  function setAvatarInitials(letter) {
+    if (avatarPreview) {
+      avatarPreview.querySelectorAll('img, .avatar-initials').forEach((el) => el.remove());
+      const div = document.createElement('div');
+      div.id = 'avatarInitials';
+      div.className = 'avatar-initials';
+      div.textContent = letter;
+      avatarPreview.prepend(div);
+    }
+
+    const topImg = document.getElementById('topbarAvatarImg');
+    if (topImg) {
+      const div = document.createElement('div');
+      div.id = 'topbarAvatarInitials';
+      div.className = 'avatar-circle';
+      div.textContent = letter;
+      topImg.replaceWith(div);
+    }
+
+    const removeBtn = document.getElementById('removePictureBtn');
+    if (removeBtn) removeBtn.remove();
+  }
+
+  function ensureRemoveButton() {
+    if (document.getElementById('removePictureBtn') || !avatarPreview) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'removePictureBtn';
+    btn.className = 'btn btn-link btn-sm text-danger p-0';
+    btn.innerHTML = '<i class="fa-solid fa-trash me-1"></i>Remove Photo';
+    btn.addEventListener('click', handleRemovePicture);
+    avatarPreview.parentElement.appendChild(btn);
+  }
+
+  async function handleRemovePicture() {
+    if (!confirm('Remove your profile picture?')) return;
+    clearAvatarError();
+    try {
+      const res = await fetch('/profile/remove-picture', {
+        method: 'POST',
+        headers: { Accept: 'application/json' }
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error('Failed to remove picture.');
+      const letter = avatarPreview ? avatarPreview.getAttribute('data-user-initial') || '?' : '?';
+      setAvatarInitials(letter);
+    } catch (err) {
+      showAvatarError(err.message || 'Failed to remove picture.');
+    }
+  }
+
+  if (avatarPreview && avatarInput) {
+    avatarPreview.addEventListener('click', () => avatarInput.click());
+
+    avatarInput.addEventListener('change', async () => {
+      const file = avatarInput.files[0];
+      if (!file) return;
+
+      clearAvatarError();
+
+      if (file.size > MAX_AVATAR_BYTES) {
+        showAvatarError('Image must be smaller than 2MB.');
+        avatarInput.value = '';
+        return;
+      }
+
+      // Instant local preview — swap it in before the network request
+      // even finishes, so it feels immediate.
+      const reader = new FileReader();
+      reader.onload = () => setAvatarImage(reader.result);
+      reader.readAsDataURL(file);
+
+      if (avatarSpinner) avatarSpinner.classList.remove('d-none');
+
+      try {
+        const formData = new FormData();
+        formData.append('profilePicture', file);
+        const res = await fetch('/profile/upload-picture', {
+          method: 'POST',
+          headers: { Accept: 'application/json' },
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || 'Upload failed.');
+        setAvatarImage(data.profilePicture);
+        ensureRemoveButton();
+      } catch (err) {
+        showAvatarError(err.message || 'Failed to upload image.');
+      } finally {
+        if (avatarSpinner) avatarSpinner.classList.add('d-none');
+        avatarInput.value = '';
+      }
+    });
+  }
+
+  const removePictureBtn = document.getElementById('removePictureBtn');
+  if (removePictureBtn) {
+    removePictureBtn.addEventListener('click', handleRemovePicture);
+  }
 
   // ---------------------------------------------------------------
   // Animate health score gauge fill on load

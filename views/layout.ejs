@@ -34,9 +34,9 @@
             </button>
             <a href="/profile" class="text-decoration-none">
               <% if (profilePicture) { %>
-                <img src="/uploads/profile/<%= profilePicture %>" class="avatar-circle" alt="Profile" />
+                <img src="<%= profilePicture %>" class="avatar-circle" id="topbarAvatarImg" alt="Profile" />
               <% } else { %>
-                <div class="avatar-circle"><%= currentUserName.charAt(0).toUpperCase() %></div>
+                <div class="avatar-circle" id="topbarAvatarInitials"><%= currentUserName.charAt(0).toUpperCase() %></div>
               <% } %>
             </a>
           </div>

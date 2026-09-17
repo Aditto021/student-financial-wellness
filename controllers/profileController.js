@@ -44,19 +44,48 @@ const profileController = {
 
   async uploadPicture(req, res) {
     const userId = req.session.userId;
+    const wantsJson = (req.headers.accept || '').includes('application/json');
 
     if (!req.file) {
-      req.flash('error', 'Please select an image to upload.');
+      const message = 'Please select an image to upload.';
+      if (wantsJson) return res.status(400).json({ success: false, message });
+      req.flash('error', message);
       return res.redirect('/profile');
     }
 
     try {
-      await UserModel.updateProfilePicture(userId, req.file.filename);
+      // Stored as a data URI directly in the database (not on disk) so
+      // it survives restarts/redeploys on hosts with an ephemeral
+      // filesystem, exactly like every other piece of the app's data.
+      const dataUri = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+      await UserModel.updateProfilePicture(userId, dataUri);
+
+      if (wantsJson) return res.json({ success: true, profilePicture: dataUri });
       req.flash('success', 'Profile picture updated successfully.');
       res.redirect('/profile');
     } catch (err) {
       console.error('Upload picture error:', err);
-      req.flash('error', 'Failed to upload profile picture.');
+      const message = 'Failed to upload profile picture.';
+      if (wantsJson) return res.status(500).json({ success: false, message });
+      req.flash('error', message);
+      res.redirect('/profile');
+    }
+  },
+
+  async removePicture(req, res) {
+    const userId = req.session.userId;
+    const wantsJson = (req.headers.accept || '').includes('application/json');
+
+    try {
+      await UserModel.updateProfilePicture(userId, null);
+      if (wantsJson) return res.json({ success: true });
+      req.flash('success', 'Profile picture removed.');
+      res.redirect('/profile');
+    } catch (err) {
+      console.error('Remove picture error:', err);
+      const message = 'Failed to remove profile picture.';
+      if (wantsJson) return res.status(500).json({ success: false, message });
+      req.flash('error', message);
       res.redirect('/profile');
     }
   },

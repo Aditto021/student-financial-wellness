@@ -18,7 +18,7 @@ CREATE TABLE users (
     google_id VARCHAR(255) DEFAULT NULL UNIQUE COMMENT 'Google account ID, set when signed up/linked via Google',
     university VARCHAR(150) DEFAULT NULL,
     student_id VARCHAR(50) DEFAULT NULL,
-    profile_picture VARCHAR(255) DEFAULT NULL,
+    profile_picture LONGTEXT DEFAULT NULL COMMENT 'Full data URI (data:image/...;base64,...) stored in the DB itself, not on disk, so it survives redeploys on ephemeral-filesystem hosts like Render',
     dark_mode TINYINT(1) NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

@@ -48,7 +48,7 @@ if (isGoogleAuthEnabled) {
                 fullName: profile.displayName || 'Google User',
                 email,
                 googleId: profile.id,
-                profilePicture: null // keep local upload flow separate from Google's hosted photo URL
+                profilePicture: photo // Google's own hosted photo URL renders fine as-is; user can replace it later
               });
               user = await UserModel.findById(userId);
             }

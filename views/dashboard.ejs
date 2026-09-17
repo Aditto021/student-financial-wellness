@@ -174,7 +174,24 @@
   <!-- AI Recommendations -->
   <div class="col-lg-6">
     <div class="glass-card h-100">
-      <div class="section-title"><i class="fa-solid fa-robot"></i> AI-Powered Recommendations</div>
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+        <div class="section-title mb-0">
+          <i class="fa-solid fa-robot"></i> AI-Powered Recommendations
+          <% if (isAiEnhanced) { %>
+            <span class="badge-category" style="background:rgba(139,92,246,0.14); color:#6d3fd1; margin-left:6px; vertical-align:middle;">✨ AI-Enhanced</span>
+          <% } %>
+        </div>
+        <% if (isAiConfigured) { %>
+          <form action="/dashboard/refresh-ai-insights" method="POST" class="d-flex align-items-center gap-2">
+            <% if (aiInsightsGeneratedAtRelative) { %>
+              <span style="color:var(--muted); font-size:0.75rem;">Updated <%= aiInsightsGeneratedAtRelative %></span>
+            <% } %>
+            <button type="submit" class="btn btn-outline-brand btn-sm" title="Regenerate AI insights">
+              <i class="fa-solid fa-rotate"></i>
+            </button>
+          </form>
+        <% } %>
+      </div>
       <% if (recommendations.length === 0) { %>
         <div class="empty-state">
           <i class="fa-solid fa-face-smile"></i>

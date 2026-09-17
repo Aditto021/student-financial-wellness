@@ -39,7 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const isDark = html.getAttribute('data-theme') === 'dark';
       const newState = !isDark;
       html.setAttribute('data-theme', newState ? 'dark' : 'light');
-      themeToggle.innerHTML = newState ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
 
       try {
         await fetch('/profile/dark-mode', {

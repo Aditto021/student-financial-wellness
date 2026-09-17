@@ -121,6 +121,22 @@ CREATE TABLE recommendations (
 ) ENGINE=InnoDB;
 
 -- ------------------------------------------------------------------
+-- Table: ai_insight
+-- Caches the latest LLM-generated (Claude) recommendation batch per
+-- user, so the dashboard doesn't call the API on every page load.
+-- One row per user; content is a JSON array of {message, category,
+-- severity}. Only populated when ANTHROPIC_API_KEY is configured —
+-- the app falls back to the rule-based engine otherwise.
+-- ------------------------------------------------------------------
+CREATE TABLE ai_insight (
+    user_id INT PRIMARY KEY,
+    content LONGTEXT NOT NULL,
+    model_used VARCHAR(50) DEFAULT NULL,
+    generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ai_insight_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- ------------------------------------------------------------------
 -- Table: reports (generated monthly report log)
 -- ------------------------------------------------------------------
 CREATE TABLE reports (

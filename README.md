@@ -19,7 +19,8 @@ external ML/LLM API required.
 - 🔁 **Fixed Daily Expenses** — recurring day-to-day costs (Food, Travel Fare, etc.) logged as real expenses with one click instead of the full form, with a "Log All" shortcut and a flexible-budget-remaining-today figure
 - 🧮 **Category Budgets** — envelope-style limits per expense category (Food, Transport, etc.), each tracked against actual spend for the month
 - 🏆 **Savings Goal** — set a monthly savings target and track progress against actual income minus expenses, surfaced on both the Dashboard and Budget Planner
-- 🤖 **Rule-Based AI Recommendation Engine** — a deterministic scoring + rules system that generates a 0–100 Financial Health Score and personalized advice (see [`services/aiEngine.js`](./services/aiEngine.js))
+- 🤖 **Rule-Based AI Recommendation Engine** — a deterministic scoring + rules system that generates a 0–100 Financial Health Score and personalized advice, including month-over-month trend awareness, category-budget overages, savings-goal pacing and an emergency-fund check (see [`services/aiEngine.js`](./services/aiEngine.js))
+- ✨ **Optional AI-Enhanced Insights (Claude)** — when `ANTHROPIC_API_KEY` is set, richer, natural-language recommendations from Claude replace the rule-based list on the dashboard (cached, auto-refreshed daily in the background, plus a manual "Regenerate" button); the app works identically without a key, using the engine above (see [`services/aiInsightsService.js`](./services/aiInsightsService.js))
 - 📄 **Reports** — monthly summary, PDF export (pdfkit), CSV export (json2csv), report history log
 - 🌗 **Dark Mode**, 🔍 **Search & Filter**, 📤 **CSV Export**, 🖼️ **Profile Picture Upload**
 - 💚 **Modern UI** — green/white glassmorphism SaaS-style dashboard, Bootstrap 5, Font Awesome, responsive sidebar navigation
@@ -192,7 +193,26 @@ GOOGLE_CALLBACK_URL=http://localhost:3000/auth/google/callback
 A Google sign-in automatically links to an existing account if the email
 already matches one created with a password.
 
-### 5. Run the application
+### 5. (Optional) Enable AI-Enhanced Insights
+
+The dashboard's rule-based recommendations work fully on their own. To
+additionally have Claude generate richer, personalized natural-language
+insights from the same data:
+
+1. Get an API key at [console.anthropic.com](https://console.anthropic.com/settings/keys) (separate billing from any Claude.ai subscription)
+2. Add to `.env`:
+
+```env
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Insights are cached per user and refreshed automatically once a day in
+the background (never blocking a page load), plus there's a manual
+"Regenerate" button on the dashboard. If the key is missing, invalid,
+or a request fails for any reason, the app silently falls back to the
+rule-based engine — nothing breaks either way.
+
+### 6. Run the application
 
 ```bash
 npm start

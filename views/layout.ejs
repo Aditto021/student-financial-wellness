@@ -25,6 +25,26 @@
 <body>
 
   <% if (typeof isAuthenticated !== 'undefined' && isAuthenticated) { %>
+    <div id="appEntrance" class="app-entrance">
+      <div class="app-entrance-mark">
+        <div class="app-entrance-ring"></div>
+        <div class="app-entrance-logo"><i class="fa-solid fa-seedling"></i></div>
+      </div>
+      <div class="app-entrance-word">FinWell<span>.</span></div>
+      <div class="app-entrance-tagline">Your finances, at a glance</div>
+    </div>
+    <script>
+      (function () {
+        try {
+          if (sessionStorage.getItem('finwell_entered')) {
+            document.documentElement.classList.add('entrance-skip');
+          } else {
+            sessionStorage.setItem('finwell_entered', '1');
+          }
+        } catch (e) { /* private browsing etc. — animation just plays every time */ }
+      })();
+    </script>
+
     <div class="app-shell">
       <div id="sidebarOverlay" class="d-none" style="position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;"></div>
       <%- include('partials/sidebar') %>

@@ -34,6 +34,11 @@ function pct(part, whole) {
  *   - Category Balance   (15 points max) - penalizes over-concentration
  */
 function calculateHealthScore({ totalIncome, totalExpense, monthlyBudget, categoryTotals }) {
+  // No data recorded at all yet — the "neutral default" components below
+  // would otherwise add up to a misleadingly decent-looking score for an
+  // account that hasn't tracked anything. Nothing to score yet.
+  if (!totalIncome && !totalExpense) return 0;
+
   let score = 0;
   const savings = totalIncome - totalExpense;
   const savingsRate = pct(savings, totalIncome); // can be negative
@@ -100,8 +105,26 @@ function calculateHealthScore({ totalIncome, totalExpense, monthlyBudget, catego
  *   - message  : human readable advice
  *   - category : which financial area it relates to
  *   - severity : info | success | warning | danger (drives UI styling)
+ *
+ * Beyond the core category/budget checks, this also considers (when
+ * the data is available — every new param is optional so existing
+ * callers keep working unchanged):
+ *   - month-over-month spending trend (incomeTrend / expenseTrend)
+ *   - per-category envelope budgets (categoryBudgets)
+ *   - a savings goal's pacing for the rest of the month (savingsGoal)
+ *   - an emergency-fund check against the all-time balance (totalBalance)
  */
-function generateRecommendations({ totalIncome, totalExpense, monthlyBudget, categoryTotals }) {
+function generateRecommendations({
+  totalIncome,
+  totalExpense,
+  monthlyBudget,
+  categoryTotals,
+  savingsGoal = null,
+  totalBalance = null,
+  incomeTrend = [],
+  expenseTrend = [],
+  categoryBudgets = []
+}) {
   const recommendations = [];
   const savings = totalIncome - totalExpense;
   const savingsRate = pct(savings, totalIncome);
@@ -229,6 +252,106 @@ function generateRecommendations({ totalIncome, totalExpense, monthlyBudget, cat
     });
   }
 
+  // --- Trend-aware rules (month-over-month momentum) -------------------
+  // Compare the last two fully-completed months (never the current,
+  // still-in-progress one, which would unfairly look "low") so the
+  // comparison is apples-to-apples.
+  const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+  const completedExpenseMonths = (expenseTrend || []).filter((m) => m.month < currentMonth);
+  if (completedExpenseMonths.length >= 2) {
+    const last = completedExpenseMonths[completedExpenseMonths.length - 1];
+    const prev = completedExpenseMonths[completedExpenseMonths.length - 2];
+    const lastTotal = parseFloat(last.total);
+    const prevTotal = parseFloat(prev.total);
+    if (prevTotal > 0) {
+      const change = pct(lastTotal - prevTotal, prevTotal);
+      if (change >= 20) {
+        recommendations.push({
+          message: `Your spending in ${last.month} was ${change.toFixed(1)}% higher than ${prev.month} (৳${lastTotal.toFixed(2)} vs ৳${prevTotal.toFixed(2)}). Check whether this was a one-off expense or a new pattern worth reining in.`,
+          category: 'Trend',
+          severity: 'warning'
+        });
+      } else if (change <= -15) {
+        recommendations.push({
+          message: `You cut spending by ${Math.abs(change).toFixed(1)}% from ${prev.month} to ${last.month} (৳${prevTotal.toFixed(2)} → ৳${lastTotal.toFixed(2)}). That's real progress — keep the momentum going.`,
+          category: 'Trend',
+          severity: 'success'
+        });
+      }
+    }
+  }
+
+  // --- Category budget (envelope) rules ---------------------------------
+  (categoryBudgets || []).forEach((cb) => {
+    const budgetAmount = parseFloat(cb.budget_amount);
+    if (!budgetAmount || budgetAmount <= 0) return;
+    const spent = catMap[cb.category] || 0;
+    const usage = pct(spent, budgetAmount);
+    if (usage > 100) {
+      recommendations.push({
+        message: `You've exceeded your ${cb.category} budget by ৳${(spent - budgetAmount).toFixed(2)} (${(usage - 100).toFixed(1)}% over the ৳${budgetAmount.toFixed(2)} you set aside). Consider pausing non-essential ${cb.category.toLowerCase()} purchases for the rest of the month.`,
+        category: cb.category,
+        severity: 'danger'
+      });
+    } else if (usage >= 90) {
+      recommendations.push({
+        message: `You're at ${usage.toFixed(1)}% of your ${cb.category} budget (৳${(budgetAmount - spent).toFixed(2)} left). One or two more purchases could tip you over.`,
+        category: cb.category,
+        severity: 'warning'
+      });
+    }
+  });
+
+  // --- Savings goal pacing ------------------------------------------------
+  if (savingsGoal && savingsGoal > 0) {
+    const savings = totalIncome - totalExpense;
+    if (savings >= savingsGoal) {
+      recommendations.push({
+        message: `You've already reached your ৳${savingsGoal.toFixed(2)} savings goal for this month with ৳${(savings - savingsGoal).toFixed(2)} to spare. Consider raising next month's target.`,
+        category: 'Savings Goal',
+        severity: 'success'
+      });
+    } else {
+      const now = new Date();
+      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const daysLeft = Math.max(1, daysInMonth - now.getDate() + 1);
+      const shortfall = savingsGoal - savings;
+      const neededPerDay = shortfall / daysLeft;
+      recommendations.push({
+        message: `You're ৳${shortfall.toFixed(2)} short of your ৳${savingsGoal.toFixed(2)} savings goal. Setting aside about ৳${neededPerDay.toFixed(2)}/day for the remaining ${daysLeft} day(s) of the month would get you there.`,
+        category: 'Savings Goal',
+        severity: savings < 0 ? 'danger' : 'info'
+      });
+    }
+  }
+
+  // --- Emergency fund check (all-time balance vs. typical monthly spend) -
+  if (totalBalance !== null && completedExpenseMonths.length >= 1) {
+    const avgMonthlyExpense = completedExpenseMonths.reduce((sum, m) => sum + parseFloat(m.total), 0) / completedExpenseMonths.length;
+    if (avgMonthlyExpense > 0) {
+      const monthsCovered = totalBalance / avgMonthlyExpense;
+      if (totalBalance < 0) {
+        recommendations.push({
+          message: `Your all-time balance is negative (৳${totalBalance.toFixed(2)}) — you've spent more than you've earned overall. This is the top priority to fix before anything else.`,
+          category: 'Emergency Fund',
+          severity: 'danger'
+        });
+      } else if (monthsCovered < 1) {
+        recommendations.push({
+          message: `Your all-time balance (৳${totalBalance.toFixed(2)}) covers less than a month of your typical spending (৳${avgMonthlyExpense.toFixed(2)}/month). Building a small buffer — even one month's worth — protects you from surprise costs.`,
+          category: 'Emergency Fund',
+          severity: 'info'
+        });
+      } else if (monthsCovered >= 3) {
+        recommendations.push({
+          message: `Your all-time balance of ৳${totalBalance.toFixed(2)} covers about ${monthsCovered.toFixed(1)} months of your typical spending — a solid safety cushion. Well done.`,
+          category: 'Emergency Fund',
+          severity: 'success'
+        });
+      }
+    }
+  }
+
   return recommendations;
 }
 
@@ -236,9 +359,29 @@ function generateRecommendations({ totalIncome, totalExpense, monthlyBudget, cat
  * Main entry point used by controllers: runs the full analysis
  * and returns both the health score and the recommendation list.
  */
-function analyze({ totalIncome, totalExpense, monthlyBudget, categoryTotals }) {
+function analyze({
+  totalIncome,
+  totalExpense,
+  monthlyBudget,
+  categoryTotals,
+  savingsGoal = null,
+  totalBalance = null,
+  incomeTrend = [],
+  expenseTrend = [],
+  categoryBudgets = []
+}) {
   const healthScore = calculateHealthScore({ totalIncome, totalExpense, monthlyBudget, categoryTotals });
-  const recommendations = generateRecommendations({ totalIncome, totalExpense, monthlyBudget, categoryTotals });
+  const recommendations = generateRecommendations({
+    totalIncome,
+    totalExpense,
+    monthlyBudget,
+    categoryTotals,
+    savingsGoal,
+    totalBalance,
+    incomeTrend,
+    expenseTrend,
+    categoryBudgets
+  });
 
   // Sort so danger > warning > info > success (most urgent advice first)
   const severityOrder = { danger: 0, warning: 1, info: 2, success: 3 };

@@ -11,6 +11,7 @@ const IncomeModel = require('../models/incomeModel');
 const ExpenseModel = require('../models/expenseModel');
 const BudgetModel = require('../models/budgetModel');
 const RecommendationModel = require('../models/recommendationModel');
+const CategoryBudgetModel = require('../models/categoryBudgetModel');
 const aiEngine = require('../services/aiEngine');
 
 function currentMonthYear() {
@@ -25,7 +26,7 @@ const dashboardController = {
       const userId = req.session.userId;
       const monthYear = currentMonthYear();
 
-      const [totalIncome, totalExpense, categoryTotals, budgetRow, incomeTrend, expenseTrend, dailyExpenseRows, allTimeIncome, allTimeExpense] = await Promise.all([
+      const [totalIncome, totalExpense, categoryTotals, budgetRow, incomeTrend, expenseTrend, dailyExpenseRows, allTimeIncome, allTimeExpense, categoryBudgetRows] = await Promise.all([
         IncomeModel.getTotal(userId, monthYear),
         ExpenseModel.getTotal(userId, monthYear),
         ExpenseModel.getTotalsByCategory(userId, monthYear),
@@ -34,7 +35,8 @@ const dashboardController = {
         ExpenseModel.getMonthlyTotals(userId, 6),
         ExpenseModel.getDailyTotals(userId, monthYear),
         IncomeModel.getTotal(userId),
-        ExpenseModel.getTotal(userId)
+        ExpenseModel.getTotal(userId),
+        CategoryBudgetModel.findAllByMonth(userId, monthYear)
       ]);
 
       const monthlyBudget = budgetRow ? parseFloat(budgetRow.monthly_budget) : 0;
@@ -63,12 +65,18 @@ const dashboardController = {
       const savingsGoal = budgetRow && budgetRow.savings_goal !== null ? parseFloat(budgetRow.savings_goal) : null;
       const savingsGoalPct = savingsGoal && savingsGoal > 0 ? Math.min(150, (totalSavings / savingsGoal) * 100) : null;
 
-      // Run the rule-based AI engine
+      // Run the rule-based AI engine, enriched with trend, savings-goal,
+      // category-budget and all-time-balance context for sharper advice.
       const { healthScore, recommendations } = aiEngine.analyze({
         totalIncome,
         totalExpense,
         monthlyBudget,
-        categoryTotals
+        categoryTotals,
+        savingsGoal,
+        totalBalance,
+        incomeTrend,
+        expenseTrend,
+        categoryBudgets: categoryBudgetRows
       });
 
       // Log the AI output for history (fire and forget, don't block render)

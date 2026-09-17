@@ -48,7 +48,7 @@ correctly through the Express routing layer.
 | IT-09 | PDF report download | GET `/reports/download/pdf?month=YYYY-MM` | Response has `Content-Type: application/pdf` and valid PDF bytes | Pass |
 | IT-10 | CSV export | GET `/reports/download/csv?month=YYYY-MM` | Response has `Content-Type: text/csv` with correct row count | Pass |
 | IT-11 | Unauthorized access blocked | GET `/dashboard` without a session | Redirected to `/auth/login` with flash error | Pass |
-| IT-12 | Profile picture upload | POST `/profile/upload-picture` with a valid image | File saved under `/uploads/profile`, `users.profile_picture` updated | Pass |
+| IT-12 | Profile picture upload | POST `/profile/upload-picture` with a valid image | Image stored as a base64 data URI in `users.profile_picture` (not on disk, so it survives redeploys) | Pass |
 
 ---
 

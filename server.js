@@ -15,7 +15,7 @@ const MySQLStore = require('express-mysql-session')(session);
 const flash = require('connect-flash');
 const expressLayouts = require('express-ejs-layouts');
 
-const { pool, testConnection } = require('./config/db');
+const { sessionPool, testConnection } = require('./config/db');
 const { requireAuth } = require('./middleware/auth');
 const UserModel = require('./models/userModel');
 const { passport, isGoogleAuthEnabled } = require('./config/passport');
@@ -55,13 +55,39 @@ const sessionStore = new MySQLStore(
     checkExpirationInterval: 15 * 60 * 1000, // sweep expired sessions every 15 min
     expiration: 1000 * 60 * 60 * 24 * 30 // 30 days, matches the cookie below
   },
-  pool
+  sessionPool
 );
 sessionStore.onReady().catch((err) => {
   console.error('❌  Session store failed to initialize:', err.message);
 });
 sessionStore.on('error', (err) => {
   console.error('Session store error:', err.message);
+});
+
+// A single transient connection blip (a stale pooled connection, a
+// momentary network hiccup to the cloud DB) hitting store.get/set/touch
+// is otherwise fatal to that request's session: express-session treats
+// a failed read as "no session" (silently logging the user out) and,
+// worse, swallows a failed write entirely — the response already went
+// out to the browser with a valid-looking cookie whose data never
+// actually made it to the database, so the *next* request finds
+// nothing and the user is asked to log in again for no visible reason.
+// Retrying once, after a brief pause, absorbs exactly that class of
+// one-off failure without masking a genuinely broken store.
+['get', 'set', 'touch'].forEach((method) => {
+  const original = sessionStore[method].bind(sessionStore);
+  sessionStore[method] = function (...args) {
+    const callback = args[args.length - 1];
+    const rest = args.slice(0, -1);
+    original(...rest, (err, result) => {
+      if (err) {
+        console.error(`Session store "${method}" failed, retrying once:`, err.message);
+        setTimeout(() => original(...rest, callback), 250);
+        return;
+      }
+      callback(err, result);
+    });
+  };
 });
 
 app.use(

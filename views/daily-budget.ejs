@@ -170,7 +170,7 @@
         </form>
       <% } %>
       <button class="btn btn-brand btn-sm" data-bs-toggle="modal" data-bs-target="#addFixedExpenseModal">
-        <i class="fa-solid fa-plus me-1"></i> Add Fixed Expense
+        <i class="fa-solid fa-plus me-1"></i> Add Today's Expense
       </button>
     </div>
   </div>
@@ -269,13 +269,13 @@
   <% } %>
 </div>
 
-<!-- Add Fixed Expense Modal -->
+<!-- Add Today's Expense Modal -->
 <div class="modal fade" id="addFixedExpenseModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content p-2">
       <form action="/budget/daily/fixed" method="POST">
         <div class="modal-header border-0">
-          <h5 class="modal-title">Add Fixed Daily Expense</h5>
+          <h5 class="modal-title">Add Today's Expense</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">

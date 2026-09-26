@@ -187,7 +187,8 @@ const budgetController = {
         fixedExpenses,
         fixedDailyTotal,
         flexibleDailyBudget,
-        categories: CATEGORIES
+        categories: CATEGORIES,
+        today
       });
     } catch (err) {
       console.error('Daily budget index error:', err);

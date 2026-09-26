@@ -46,29 +46,34 @@ const expenseController = {
 
   async create(req, res) {
     const userId = req.session.userId;
-    const { category, amount, expenseDate, description } = req.body;
+    const { category, amount, expenseDate, description, redirectTo } = req.body;
+    // Lets a form living on another page (e.g. the Daily Budget Planner's
+    // quick "Add Expense" card) send the user back there instead of
+    // always landing on /expenses — same safe-relative-path pattern used
+    // for post-login redirects.
+    const target = redirectTo && redirectTo.startsWith('/') ? redirectTo : '/expenses';
 
     if (!category || !amount || !expenseDate) {
       req.flash('error', 'Category, amount and date are required.');
-      return res.redirect('/expenses');
+      return res.redirect(target);
     }
     if (!CATEGORIES.includes(category)) {
       req.flash('error', 'Invalid category selected.');
-      return res.redirect('/expenses');
+      return res.redirect(target);
     }
     if (parseFloat(amount) <= 0) {
       req.flash('error', 'Amount must be greater than zero.');
-      return res.redirect('/expenses');
+      return res.redirect(target);
     }
 
     try {
       await ExpenseModel.create(userId, { category, amount: parseFloat(amount), expenseDate, description });
       req.flash('success', 'Expense added successfully.');
-      res.redirect('/expenses');
+      res.redirect(target);
     } catch (err) {
       console.error('Expense create error:', err);
       req.flash('error', 'Failed to add expense.');
-      res.redirect('/expenses');
+      res.redirect(target);
     }
   },
 

@@ -838,110 +838,7 @@ a {
   border-radius: 999px;
 }
 
-/* ---------------------------------------------------------------
-   App entrance splash — plays once per browser session, the
-   moment you first land in the authenticated app (see the inline
-   script next to #appEntrance in views/layout.ejs). Skipped on
-   every subsequent page navigation within the same session so it
-   never slows down normal use.
-   --------------------------------------------------------------- */
-.app-entrance {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(160deg, var(--primary-dark), var(--primary) 55%, var(--mint));
-  animation: entranceFadeOut 0.55s ease forwards;
-  animation-delay: 1.05s;
-}
-
-html.entrance-skip .app-entrance {
-  display: none;
-}
-
-.app-entrance-mark {
-  position: relative;
-  width: 96px;
-  height: 96px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.app-entrance-ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.55);
-  animation: entranceRingExpand 1.2s ease-out both;
-}
-
-.app-entrance-logo {
-  position: relative;
-  width: 88px;
-  height: 88px;
-  border-radius: 26px;
-  background: rgba(255, 255, 255, 0.16);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2.3rem;
-  color: #fff;
-  animation: entranceLogoPop 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-
-.app-entrance-word {
-  margin-top: 22px;
-  font-family: 'Sora', sans-serif;
-  font-weight: 800;
-  font-size: 1.5rem;
-  letter-spacing: 0.02em;
-  color: #fff;
-  opacity: 0;
-  animation: entranceWordFade 0.5s ease 0.4s both;
-}
-
-.app-entrance-word span {
-  color: #d9f7e8;
-}
-
-.app-entrance-tagline {
-  margin-top: 6px;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.75);
-  opacity: 0;
-  animation: entranceWordFade 0.5s ease 0.55s both;
-}
-
-@keyframes entranceLogoPop {
-  0% { transform: scale(0.35); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-@keyframes entranceRingExpand {
-  0% { transform: scale(0.5); opacity: 0.9; }
-  100% { transform: scale(1.9); opacity: 0; }
-}
-
-@keyframes entranceWordFade {
-  0% { opacity: 0; transform: translateY(8px); }
-  100% { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes entranceFadeOut {
-  0% { opacity: 1; visibility: visible; }
-  100% { opacity: 0; visibility: hidden; }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .app-entrance,
-  .app-entrance-ring,
-  .app-entrance-logo,
-  .app-entrance-word,
-  .app-entrance-tagline,
   .auth-brand,
   .auth-quote,
   .auth-stats,
@@ -950,8 +847,5 @@ html.entrance-skip .app-entrance {
   .auth-visual::after {
     animation: none !important;
     opacity: 1 !important;
-  }
-  .app-entrance {
-    display: none !important;
   }
 }
